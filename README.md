@@ -1,187 +1,155 @@
 <p align="center">
-  <img src="frontend/public/logo.svg" alt="FluxKernel Logo" width="128" height="128"/>
+  <img src="assets/logo/fluxkernel-glyph-dark.svg" alt="FluxKernel Logo" width="160" />
 </p>
+
+# <p align="center">FluxKernel</p>
+<h3 align="center">Voxion Labs Autonomous Engineering Kernel & Operating System</h3>
 
 <p align="center">
-  <img src="frontend/public/brand.svg" alt="FluxKernel" height="64" />
-</p>
-
-<p align="center">
-  <strong>An OS-level AI Agent with an unfiltered cognitive core.</strong><br/>
-  Built for engineers who demand full system access, persistent memory, and zero guard-rails in their local environment.
-</p>
-
-<p align="center">
-  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js"/>
-  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.111-009688?style=flat-square&logo=fastapi&logoColor=white"/>
-  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-15-336791?style=flat-square&logo=postgresql&logoColor=white"/>
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white"/>
-  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white"/>
-  <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white"/>
-  <img alt="License" src="https://img.shields.io/badge/License-Authorised-green?style=flat-square"/>
+  <img src="https://img.shields.io/badge/Architecture-Autonomous%20Agentic%20Loop-39ff8a?style=for-the-badge" alt="Architecture" />
+  <img src="https://img.shields.io/badge/Kernel-Python%20%7C%20FastAPI-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Kernel" />
+  <img src="https://img.shields.io/badge/Interface-Next.js%20%7C%20React-000000?style=for-the-badge&logo=next.js&logoColor=white" alt="Interface" />
+  <img src="https://img.shields.io/badge/Security-Strict%20Sandbox-ffcc00?style=for-the-badge" alt="Security" />
+  <img src="https://img.shields.io/badge/License-Proprietary-red.svg?style=for-the-badge" alt="License" />
 </p>
 
 ---
 
-## What is FluxKernel?
+## 1. Executive Abstract
 
-FluxKernel is not a chat wrapper. It is an **AI Operating System Agent** — a persistent, memory-driven kernel that operates directly on your filesystem, executes arbitrary code, diffs and patches files, routes to local or cloud LLMs based on active persona, and surfaces everything through a premium developer-grade UI.
+**FluxKernel** is a proprietary, full-stack autonomous AI engineering environment and cognitive operating system developed exclusively by Voxion Labs. 
 
-### Core Capabilities
+Standard large language model (LLM) implementations function as stateless chat wrappers requiring constant human orchestration. FluxKernel abandons this paradigm. It operates as a stateful, agentic operating system capable of executing complex software architecture tasks independently. By bridging a highly deterministic Python execution kernel with a low-latency Next.js command matrix, the system achieves physical agency. 
 
-| Capability | Description |
-|---|---|
-| **Persona Engine** | Multiple cognitive identities (`Standard`, `Architect`, `Unfiltered`). Each has its own system prompt and intensity. The *Unfiltered* persona routes directly to your local Ollama instance. |
-| **Workspace Sandbox** | The AI can read, create, and modify files within a strictly sandboxed `workspace/` directory. Path traversal attacks are blocked at the filesystem layer. |
-| **Code Execution** | Python code is executed in a secure subprocess with a 10-second hard timeout. stdout + stderr are captured and returned. |
-| **Diff Viewer** | Every AI-proposed code change is surfaced as a side-by-side diff. You `Approve` or `Reject` before anything touches disk. |
-| **SSE Streaming** | Responses stream token-by-token from the FastAPI backend → Next.js Edge Route → React frontend via `ReadableStream`. |
-| **Persistent Memory** | All sessions, messages, and personas are persisted in PostgreSQL via SQLAlchemy. |
-| **Image Canvas** | Generated assets are displayed in the right-sidebar with Download and Expand actions. |
-| **Webhook Bus** | An async webhook endpoint (`/api/webhooks`) receives events from the Python backend (image generation, task completion, etc.). |
+FluxKernel is capable of direct operating system control, arbitrary script compilation, dynamic software package management, and long-term memory retrieval via Vectorized Retrieval-Augmented Generation (RAG).
 
 ---
 
-## Monorepo Structure
+## 2. Architectural Topology
 
-```
-FluxKernel/
-├── frontend/               # Next.js 15 (App Router) — the UI
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── (auth)/     # Login & Register pages
-│   │   │   ├── (dashboard)/# 3-column workspace layout
-│   │   │   └── api/        # Next.js API routes (chat, workspace, webhooks)
-│   │   ├── components/
-│   │   │   ├── chat/       # ChatInput, MessageStream, MonacoEditor
-│   │   │   ├── modals/     # PersonaManager, ConfirmAction, DangerZone
-│   │   │   ├── ui/         # Shadcn primitives + ThemeToggle
-│   │   │   └── workspace/  # FileExplorer, DiffViewer, ImageCanvas
-│   │   ├── hooks/          # useIsMobile
-│   │   ├── lib/            # apiClient, constants
-│   │   ├── providers/      # ThemeProvider
-│   │   └── store/          # Zustand: useFluxStore, usePersonaStore
-│   └── public/             # logo.svg, favicon
-│
-├── kernel-engine/          # FastAPI — the brain
-│   └── app/
-│       ├── api/routes/     # chat.py, files.py
-│       ├── core/           # config.py, llm_router.py
-│       ├── database/       # connection.py, models.py
-│       └── tools/          # file_manager.py, code_executor.py
-│
-├── workspace/              # Sandboxed AI workspace (read/write/execute)
-├── assets/logo/            # SVG brand assets
-└── docker-compose.yml      # PostgreSQL + FastAPI orchestration
-```
+FluxKernel operates on a strictly bifurcated monorepo architecture to guarantee execution stability, fault isolation, and cognitive scaling. The environment is partitioned into the **Kernel Engine** (Cognitive Backend) and the **Frontend** (Command Matrix).
+
+### 2.1 The Kernel Engine (Cognitive Backend)
+Located entirely within the `/kernel-engine` directory, this Python-based environment handles all LLM routing, contextual memory processing, and dangerous physical executions.
+
+#### Core Cognitive Modules (`app/core/`)
+*   **`agentic_loop.py`**: The absolute nucleus of FluxKernel. It orchestrates continuous, multi-step autonomous reasoning cycles. It evaluates task completion probabilities, selects appropriate tools, handles error recovery, and determines execution termination without human intervention.
+*   **`llm_router.py`**: A deterministic evaluation layer that intercepts system prompts and routes them to optimal local or remote LLM endpoints based on task complexity, token constraints, and latency requirements.
+*   **`project_rag.py` & `memory.py`**: The persistent contextual awareness layer. It maintains vectorized embeddings of the operator's entire workspace. This ensures the agentic loop semantically understands the codebase hierarchy before executing targeted mutations.
+*   **`persona_engine.py`**: A dynamic system-prompt injection module allowing the kernel to seamlessly shift between operational directives (e.g., Ruthless Refactoring, UI Polishing, Security Auditing) without dropping session state.
+*   **`task_queue.py` & `data_analysis.py`**: Asynchronous processing pipelines for handling parallel execution threads and telemetry analysis during prolonged autonomous operations.
+
+#### Execution Arsenal (`app/tools/`)
+The cognitive loop relies on a strictly defined arsenal of execution tools, granting the AI physical agency over the host system.
+*   **`code_executor.py`**: Compiles and executes arbitrary scripts in an isolated subprocess to validate logic before committing changes to the primary workspace.
+*   **`os_controller.py`**: Provides direct interface capabilities with the host operating system for directory traversal, process management, and shell command execution.
+*   **`software_manager.py`**: Grants the kernel autonomy over dependency installation, package updates, and environment configuration.
+*   **`file_manager.py`**: Enables high-precision read/write operations, AST parsing, and codebase mutations based on RAG context.
+*   **`web_fetcher.py`**: Facilitates real-time documentation ingestion, API scraping, and external knowledge integration.
+*   **`voice_engine.py` & `image_gen.py`**: Multimodal generation capabilities integrated directly into the operator's command workflow.
+
+#### API Routing & Handlers (`app/api/routes/`)
+*   `autopilot.py`: Manages endpoints for initiating and terminating continuous agentic loops.
+*   `chat.py`: Handles standard synchronous operator-to-kernel communication.
+*   `files.py` & `tasks.py`: Endpoints for workspace synchronization and task state monitoring.
+*   `personas.py`: Controls the active cognitive framework of the engine.
 
 ---
 
-## Prerequisites
+### 2.2 The Command Matrix (Frontend Interface)
+Located within the `/frontend` directory, the Next.js/React interface acts as a high-fidelity, low-latency control deck for the human operator.
 
-| Tool | Version | Purpose |
-|---|---|---|
-| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | ≥ 24 | Runs PostgreSQL + FastAPI |
-| [Node.js](https://nodejs.org/) | ≥ 20 LTS | Next.js frontend |
-| [Ollama](https://ollama.com/) *(optional)* | latest | Local LLM for the *Unfiltered* persona |
+#### Workspace Visualization & Synchronization (`src/components/workspace/`)
+*   **`FileExplorer.tsx`**: Real-time virtual representation of the host directory, synchronizing live as the kernel manipulates files.
+*   **`BatchDiffViewer.tsx` & `DiffViewer.tsx`**: High-precision graphical interfaces for reviewing kernel-generated codebase mutations before authorizing a final merge.
+*   **`ImageCanvas.tsx`**: Dedicated rendering surface for multimodal outputs generated by `image_gen.py`.
+
+#### Code Integration & Telemetry (`src/components/chat/` & `hooks/`)
+*   **`MonacoEditor.tsx`**: Deep browser-level integration of the Monaco execution environment, providing native syntax highlighting, algorithmic validation, and inline code interaction while the agent operates.
+*   **`MessageStream.tsx` & `ModeSelector.tsx`**: The primary communication and state-switching UI for manual overrides.
+*   **`useTaskStream.ts` & `AutoPilotToggle.tsx`**: The core telemetry pipeline monitoring continuous autonomous execution, allowing the operator to visualize the agent's thought process in real-time.
+
+#### Decentralized State Management (`src/store/`)
+To prevent UI blocking during heavy kernel processing, the frontend relies on strict client-side state handling.
+*   **`useFluxStore.ts`**: Global operational state, tracking active processes and socket connections.
+*   **`usePersonaStore.ts`**: Synchronizes the frontend UI with the active cognitive framework of the backend.
+*   **`useWorkspaceStore.ts`**: Manages the virtual file tree and unsaved diff buffers locally.
+
+#### Modular User Interface (`src/components/ui/`)
+Constructed with Tailwind CSS, the platform utilizes strict, modular UI components (`dialog.tsx`, `scroll-area.tsx`, `toast.tsx`, `slider.tsx`) to maintain a polished, premium, and distraction-free aesthetic.
 
 ---
 
-## Quick Start
+## 3. Deployment & Execution Protocol
 
-### 1 — Clone & configure
+FluxKernel requires a strict initialization sequence. The Python kernel MUST be fully operational and bound to its required ports before the Next.js interface attempts API or WebSocket handshakes.
 
+### Phase 1: Environment Configuration
+Copy environment templates and inject the required API keys, database connection strings, and strict sandbox paths.
 ```bash
-git clone https://github.com/your-org/fluxkernel.git
-cd FluxKernel
-
-# Copy env template
 cp kernel-engine/.env.example kernel-engine/.env
 ```
 
-The defaults in `.env.example` match the `docker-compose.yml` credentials exactly — no edits needed for local dev.
-
-### 2 — Start the backend stack
-
+### Phase 2: Container Initialization
+Boot the local PostgreSQL and Redis instances required for long-term memory vectorization and task queuing.
 ```bash
 docker-compose up -d
 ```
 
-This starts:
-- **PostgreSQL 15** on `localhost:5432` — tables auto-created on first boot via SQLAlchemy `create_all`.
-- **FastAPI Kernel Engine** on `localhost:8000` — auto-restarts on failure.
-
-Verify the engine is live:
-
+### Phase 3: Kernel Engine Ingress
+Initialize the cognitive loop, database models (`models.py`), and API routing layers.
 ```bash
-curl http://localhost:8000/
-# → {"status":"online","message":"FluxKernel Engine is running"}
+cd kernel-engine
+pip install -r requirements.txt
+python app/main.py
 ```
 
-Interactive API docs are available at **http://localhost:8000/docs**.
-
-### 3 — Start the frontend
-
+### Phase 4: Command Matrix Ingress
+Boot the Next.js operational interface.
 ```bash
-cd frontend
+cd ../frontend
 npm install
 npm run dev
 ```
 
-Open **http://localhost:3000** in your browser.
+---
 
-### 4 *(Optional)* — Enable the Unfiltered Persona
+## 4. Operational Security (OpSec) & Isolation
 
-Install [Ollama](https://ollama.com/), then pull a model:
-
-```bash
-ollama pull llama3
-```
-
-Ollama runs on `http://localhost:11434` by default, which the Docker API container reaches via `host.docker.internal`.
+Given FluxKernel's ability to execute arbitrary code via `os_controller.py` and `code_executor.py`, operational security is paramount.
+*   **Strict Containerization:** The engine must be executed within its designated Docker container to prevent catastrophic host-level degradation.
+*   **Route Protection:** All Next.js API endpoints (`src/app/api/`) and Python routes (`app/api/routes/`) utilize strict CORS policies and localized payload validation to prevent cross-site request forgery (CSRF).
+*   **Agentic Constraints:** The `security.py` module enforces strict boundary conditions on the `agentic_loop.py`, terminating processes that attempt to mutate unauthorized system directories or burn tokens in recursive loops.
 
 ---
 
-## Environment Variables
+## 5. Infrastructure Documentation
 
-### `kernel-engine/.env`
-
-| Variable | Default | Description |
-|---|---|---|
-| `DATABASE_URL` | `postgresql://fluxuser:fluxpass@localhost:5432/fluxkernel` | SQLAlchemy connection string |
-| `LOCAL_LLM_URL` | `http://localhost:11434` | Ollama or any OpenAI-compatible local endpoint |
-
-### `frontend/.env.local` *(create manually)*
-
-| Variable | Default | Description |
-|---|---|---|
-| `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Overrides the FastAPI base URL |
+For a visual breakdown of the execution topology, database schemas, and tool workflows, refer to the internal documentation assets located in `assets/architecture/`:
+*   **System Topology Diagram:** `system-design.drawio`
+*   **Database Relational Schema:** `database-schema.md`
+*   **Autonomous Tool Flow:** `tool-flow-diagram.png`
 
 ---
 
-## Tech Stack
+## 6. Continuous Integration (CI/CD)
 
-### Frontend
-- **Next.js 15** (App Router, React Server Components)
-- **TypeScript 5** — strict mode throughout
-- **Tailwind CSS** + **Shadcn UI** — deep charcoal dark theme
-- **Zustand** — global state (messages, streaming, persona, file selection)
-- **`next-themes`** — Sun/Moon theme toggle with system detection
-
-### Backend
-- **FastAPI** — async REST + SSE streaming
-- **SQLAlchemy 2** + **psycopg2** — ORM + PostgreSQL driver
-- **Pydantic v2** + **pydantic-settings** — typed config from `.env`
-- **httpx** — async HTTP client for LLM routing
-- **Uvicorn** — ASGI server
+FluxKernel utilizes strictly isolated deployment pipelines via GitHub Actions, located in `.github/`:
+*   `deploy-kernel.yml`: Validates code execution logic, checks Python AST, and deploys the backend to the designated remote environment defined in `render.yaml`.
+*   `deploy-frontend.yml`: Executes static analysis via `eslint.config.mjs`, validates TypeScript definitions (`tsconfig.json`), and deploys the Next.js interface per `vercel.json` directives.
 
 ---
 
-## Security Model
+## 7. License Directives
 
-FluxKernel's agentic capabilities are constrained by a layered security model:
+This repository, its underlying autonomous logic, its agentic loop, and its architectural blueprints are classified proprietary intellectual property.
 
-1. **Path Sandboxing**: All file operations are resolved against an absolute `WORKSPACE_DIR`. Any path resolving outside this boundary raises a `SecurityException` and returns HTTP 403.
-2. **Execution Timeout**: Subprocess code execution is capped at **10 seconds**. Runaway processes are terminated with exit code `124`.
-3. **Diff Approval Gate**: No AI-proposed file change reaches disk without explicit user approval via the `DiffViewer` UI.
-4. **CORS Lockdown**: In production, replace `allow_origins=["*"]` with your frontend's exact origin.
+FluxKernel operates under the **Voxion Labs Proprietary Research License (VL-PRL)**.
+Open-source usage, commercial exploitation, reverse engineering, unauthorized public hosting, or distribution of the kernel engine or interface is strictly prohibited.
+
+The full license text is available in the `LICENSE` file.
+
+---
+<p align="center">
+  <strong>Voxion Labs</strong> · Autonomous Engineering · Agentic AI · RAG · FastApi · Next.js
+</p>
