@@ -198,6 +198,14 @@ FluxKernel operates under the **Voxion Labs Proprietary Research License (VL-PRL
 **[View Voxion Labs Proprietary Research License (VL-PRL)](LICENSE)**
 
 ---
+
+<br>
+<div align="right">
+  <b>Rudranarayan Jena</b><br>
+  <i>Founder @ Voxion Labs</i>
+</div>
+
+---
 <div align="center">
-  <strong>Voxion Labs</strong> · Autonomous Engineering · Agentic AI · FastAPI · Next.js
+  (c) 2026 Voxion Labs & Rudranarayan Jena
 </div>
