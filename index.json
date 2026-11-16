@@ -1,0 +1,8 @@
+{
+  "schema_version": "1.0.0",
+  "repository": "Voxion-Labs/FluxKernel",
+  "description": "Autonomous commit metadata ledger and release audit tracker",
+  "last_updated": "2026-11-16T13:35:00Z",
+  "total_commits_tracked": 0,
+  "commits": []
+}

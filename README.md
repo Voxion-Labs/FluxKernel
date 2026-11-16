@@ -184,7 +184,7 @@ Due to the nature of FluxKernel's host-level agency (`os_controller.py`, `code_e
 All developers must adhere to the strict Sandbox Isolation guidelines. 
 
 **Read the full guidelines before submitting a Pull Request:**  
-**[View Operational & Contribution Protocols](CONTRIBUTING.md)**
+👉 **[View Operational & Contribution Protocols](CONTRIBUTING.md)**
 
 ---
 
@@ -195,7 +195,7 @@ This repository, its underlying autonomous logic, its agentic loop, and its arch
 FluxKernel operates under the **Voxion Labs Proprietary Research License (VL-PRL)**. Open-source usage, commercial exploitation, reverse engineering, unauthorized public hosting, or distribution of the kernel engine or interface is strictly prohibited.
 
 **Read the full proprietary license terms:**  
-**[View Voxion Labs Proprietary Research License (VL-PRL)](LICENSE)**
+ **[View Voxion Labs Proprietary Research License (VL-PRL)](LICENSE)**
 
 ---
 
@@ -207,5 +207,6 @@ FluxKernel operates under the **Voxion Labs Proprietary Research License (VL-PRL
 
 ---
 <div align="center">
-  (c) 2026 Voxion Labs & Rudranarayan Jena
+  (c) 2026 Voxion Labs & Rudranarayan Jena<br>
+  <strong>Voxion Labs</strong> · Autonomous Engineering · Agentic AI · FastAPI · Next.js
 </div>

@@ -1,0 +1,26 @@
+{
+  "name": "fluxkernel-sentinel-bot",
+  "url": "https://github.com/Voxion-Labs/FluxKernel",
+  "hook_attributes": {
+    "url": "https://api.voxionlabs.com/webhooks/bot",
+    "active": true
+  },
+  "redirect_url": "https://api.voxionlabs.com/auth/github/callback",
+  "description": "Autonomous release sentinel, commit metadata tracker, and CI/CD operations bot for FluxKernel systems.",
+  "public": false,
+  "default_permissions": {
+    "contents": "write",
+    "metadata": "read",
+    "pull_requests": "read",
+    "checks": "write",
+    "statuses": "write",
+    "actions": "read"
+  },
+  "default_events": [
+    "push",
+    "pull_request",
+    "check_suite",
+    "check_run",
+    "workflow_run"
+  ]
+}

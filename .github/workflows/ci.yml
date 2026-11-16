@@ -1,0 +1,291 @@
+name: Enterprise CI/CD Pipeline (Go, C++, Python)
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # 1. C++ ENGINE: LINT, BUILD, AND TEST SUITE
+  # ────────────────────────────────────────────────────────────────────────────
+  cpp-pipeline:
+    name: C++ (${{ matrix.compiler.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - name: GCC-13
+            cc: gcc-13
+            cxx: g++-13
+            pkg: gcc-13 g++-13
+          - name: Clang-17
+            cc: clang-17
+            cxx: clang++-17
+            pkg: clang-17 lld-17
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Install Toolchain and Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ${{ matrix.compiler.pkg }} \
+            cmake \
+            ninja-build \
+            clang-format \
+            clang-tidy \
+            cppcheck \
+            libboost-all-dev
+
+      - name: Lint C++ Source Formatting
+        run: |
+          echo "Scanning C++ files for clang-format compliance..."
+          CPP_FILES=$(find . -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.cc" -o -name "*.h" \) \
+            -not -path "./node_modules/*" -not -path "./build/*" -not -path "./.git/*")
+          if [ -n "$CPP_FILES" ]; then
+            clang-format --dry-run --Werror $CPP_FILES
+          else
+            echo "No C++ files detected yet; formatting check skipped."
+          fi
+
+      - name: Static Analysis with Cppcheck
+        run: |
+          echo "Executing Cppcheck static analysis..."
+          CPP_FILES=$(find . -type f \( -name "*.cpp" -o -name "*.cc" \) \
+            -not -path "./node_modules/*" -not -path "./build/*" -not -path "./.git/*")
+          if [ -n "$CPP_FILES" ]; then
+            cppcheck --enable=warning,performance,portability \
+              --inline-suppr \
+              --error-exitcode=1 \
+              $CPP_FILES
+          else
+            echo "No C++ implementation files detected yet; static analysis skipped."
+          fi
+
+      - name: Build & Test Native C++ Target
+        env:
+          CC: ${{ matrix.compiler.cc }}
+          CXX: ${{ matrix.compiler.cxx }}
+        run: |
+          # Check for CMake configuration in root or standard subdirectories
+          CMAKE_PATH=""
+          for p in . native kernel-engine/native core; do
+            if [ -f "$p/CMakeLists.txt" ]; then
+              CMAKE_PATH="$p"
+              break
+            fi
+          done
+
+          if [ -n "$CMAKE_PATH" ]; then
+            echo "Configuring CMake project from $CMAKE_PATH..."
+            cmake -S "$CMAKE_PATH" -B build -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_CXX_STANDARD=20 \
+              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+            echo "Compiling C++ binary / shared targets..."
+            cmake --build build --parallel $(nproc)
+            echo "Executing CTest test suite..."
+            ctest --test-dir build --output-on-failure
+          else
+            echo "No CMakeLists.txt present yet: Verifying ${{ matrix.compiler.name }} C++20 toolchain readiness..."
+            cat << 'EOF' > /tmp/toolchain_test.cpp
+            #include <iostream>
+            #include <vector>
+            #include <numeric>
+            #include <span>
+            #include <concepts>
+
+            template<typename T>
+            concept Numeric = std::integral<T> || std::floating_point<T>;
+
+            auto compute_sum(std::span<const int> data) -> int {
+                return std::accumulate(data.begin(), data.end(), 0);
+            }
+
+            int main() {
+                std::vector<int> vals = {1, 2, 3, 4, 5};
+                if (compute_sum(vals) != 15) return 1;
+                std::cout << "C++20 Toolchain Verified Successfully" << std::endl;
+                return 0;
+            }
+          EOF
+            ${{ matrix.compiler.cxx }} -std=c++20 -O3 -Wall -Wextra -Werror -pedantic /tmp/toolchain_test.cpp -o /tmp/toolchain_test
+            /tmp/toolchain_test
+          fi
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 2. GO SERVICE: LINT, BUILD, AND TEST SUITE
+  # ────────────────────────────────────────────────────────────────────────────
+  go-pipeline:
+    name: Go Engine (Go ${{ matrix.go-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ['1.22', '1.23']
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Go Format and Vet Check
+        run: |
+          GO_FILES=$(find . -name "*.go" -not -path "./vendor/*" -not -path "./.git/*")
+          if [ -n "$GO_FILES" ]; then
+            echo "Checking gofmt..."
+            UNFORMATTED=$(gofmt -l $GO_FILES)
+            if [ -n "$UNFORMATTED" ]; then
+              echo "Unformatted Go files detected:"
+              echo "$UNFORMATTED"
+              exit 1
+            fi
+            if [ -f "go.mod" ]; then
+              echo "Running go vet..."
+              go vet ./...
+            fi
+          else
+            echo "No Go files detected yet; format check skipped."
+          fi
+
+      - name: Build and Test Go Engine
+        run: |
+          if [ -f "go.mod" ]; then
+            echo "Downloading Go modules..."
+            go mod download
+            echo "Compiling Go binaries with race detector..."
+            go build -v -race ./...
+            echo "Running Go test suite with coverage..."
+            go test -v -race -covermode=atomic -coverprofile=coverage.out ./...
+          else
+            echo "No go.mod detected yet: Verifying Go ${{ matrix.go-version }} runtime and toolchain readiness..."
+            cat << 'EOF' > /tmp/go_scaffold_test.go
+            package main
+            import (
+                "fmt"
+                "sync"
+                "sync/atomic"
+            )
+            func main() {
+                var counter int64
+                var wg sync.WaitGroup
+                for i := 0; i < 100; i++ {
+                    wg.Add(1)
+                    go func() {
+                        defer wg.Done()
+                        atomic.AddInt64(&counter, 1)
+                    }()
+                }
+                wg.Wait()
+                if atomic.LoadInt64(&counter) != 100 {
+                    panic("Concurrency counter mismatch")
+                }
+                fmt.Println("Go Runtime & Concurrency Engine Verified")
+            }
+          EOF
+            go run -race /tmp/go_scaffold_test.go
+          fi
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 3. PYTHON BACKEND (KERNEL ENGINE): LINT & TEST
+  # ────────────────────────────────────────────────────────────────────────────
+  python-pipeline:
+    name: Python Kernel Engine (3.11)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: kernel-engine/requirements.txt
+
+      - name: Install Linting & Security Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pytest
+
+      - name: Lint Python Codebase with Ruff
+        run: |
+          echo "Running Ruff linter..."
+          ruff check kernel-engine/
+          echo "Checking formatting compliance..."
+          ruff format --check kernel-engine/
+
+      - name: Install Backend Dependencies
+        run: |
+          pip install -r kernel-engine/requirements.txt
+
+      - name: Execute Python Test Suite
+        run: |
+          echo "Running backend test discovery..."
+          if [ -d "kernel-engine/tests" ]; then
+            PYTHONPATH=kernel-engine pytest -v kernel-engine/tests/
+          else
+            echo "Testing module import integrity for FastAPI backend..."
+            python -c "
+            import sys
+            sys.path.insert(0, 'kernel-engine')
+            from app.main import app
+            assert app.title == 'FluxKernel API'
+            print('FastAPI app initialization validated successfully')
+            "
+          fi
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 4. CONTAINER BUILD VERIFICATION (MULTI-STAGE DOCKERFILE)
+  # ────────────────────────────────────────────────────────────────────────────
+  docker-verification:
+    name: Docker Multi-Stage Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Production Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: fluxkernel:ci-verify
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 5. CI SUCCESS GATE
+  # ────────────────────────────────────────────────────────────────────────────
+  ci-gate:
+    name: CI Pipeline Status Check
+    needs: [cpp-pipeline, go-pipeline, python-pipeline, docker-verification]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gate Check Confirmation
+        run: echo "All multi-stage builds, linting, tests, and container verifications passed."
