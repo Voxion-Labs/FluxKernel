@@ -2,9 +2,35 @@
   "schema_version": "1.0.0",
   "repository": "Voxion-Labs/FluxKernel",
   "description": "Autonomous commit metadata ledger and release audit tracker",
-  "last_updated": "2026-11-17T06:20:32.786628+00:00",
-  "total_commits_tracked": 11,
+  "last_updated": "2026-11-17T06:47:54.752262+00:00",
+  "total_commits_tracked": 12,
   "commits": [
+    {
+      "sha": "790daf5daf2a86a15d7dcadd68ebfa738eebe9a6",
+      "branch": "main",
+      "message": "feat(agentic): implement directive stream and autonomous decision matrix with zero-JS SSR",
+      "author": {
+        "name": "R-Jena",
+        "email": "rudrajena440@gmail.com",
+        "actor": "R-Jena"
+      },
+      "timestamp": "2026-11-17T12:15:11+05:30",
+      "commit_url": "https://github.com/Voxion-Labs/FluxKernel/commit/790daf5daf2a86a15d7dcadd68ebfa738eebe9a6",
+      "run_id": "44033869263",
+      "files_modified": [
+        "engine/app/api/routes/autopilot.py",
+        "engine/app/core/agentic_loop.py",
+        "engine/app/core/llm_router.py",
+        "engine/tests/test_agentic_loop.py",
+        "gateway/internal/proxy/proxy.go",
+        "gateway/internal/ui/static/css/dashboard.css",
+        "gateway/internal/ui/templates/dashboard.html",
+        "gateway/internal/ui/ui.go",
+        "gateway/internal/ui/ui_test.go",
+        "ops.ps1"
+      ],
+      "recorded_at": "2026-11-17T06:47:54.752123+00:00"
+    },
     {
       "sha": "b36bdb86c579d259b1feafca0ebe6a21f5590300",
       "branch": "main",
