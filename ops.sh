@@ -34,10 +34,10 @@ do_test() {
         success "Go test suite passed!"
     fi
 
-    step "Running Python Backend Verification..."
+    step "Running Python Backend & Native Bridge Verification..."
     if command -v python3 >/dev/null 2>&1; then
-        python3 -c "import sys; sys.path.insert(0, 'engine'); print('Python syntax OK')"
-        success "Python verification passed!"
+        python3 engine/tests/test_native_bridge.py
+        success "Python verification and native bridge passed!"
     fi
 }
 

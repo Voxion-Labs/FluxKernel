@@ -75,10 +75,10 @@ function Invoke-Test() {
         }
     }
 
-    Write-Step "Running Python Backend Verification..."
+    Write-Step "Running Python Backend & Native Bridge Verification..."
     if (Get-Command python -ErrorAction SilentlyContinue) {
-        python -c "import sys; sys.path.insert(0, 'engine'); print('Python syntax OK')"
-        Write-Success "Python verification passed!"
+        python engine/tests/test_native_bridge.py
+        Write-Success "Python verification and native bridge passed!"
     }
 }
 

@@ -43,6 +43,17 @@ FLUX_API int32_t flux_sandbox_available(void);
  */
 FLUX_API int64_t flux_diff_distance(const char* a, size_t len_a, const char* b, size_t len_b);
 
+/**
+ * @brief Vectorized dot product for fast cosine similarity in RAG embeddings.
+ */
+FLUX_API float flux_fast_vector_dot(const float* a, const float* b, size_t len);
+
+/**
+ * @brief Verifies that target_path strictly resides within base_dir (traversal defense).
+ * @return 1 if path is safe, 0 if traversal attempt detected.
+ */
+FLUX_API int32_t flux_sandbox_verify_path(const char* base_dir, const char* target_path);
+
 #ifdef __cplusplus
 }
 #endif

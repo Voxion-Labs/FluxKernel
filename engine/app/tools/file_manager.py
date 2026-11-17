@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from app.core.native_bridge import verify_path_safe
+
 # Define the absolute root of the repository safely
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 WORKSPACE_DIR = (BASE_DIR / "workspace").resolve()
@@ -23,7 +25,13 @@ def _resolve_and_check_path(relative_path: str) -> Path:
 
     target_path = (WORKSPACE_DIR / clean_path).resolve()
 
-    # Crucial security check using Path relative traversal protection
+    # Native barrier traversal check
+    if not verify_path_safe(WORKSPACE_DIR, target_path):
+        raise SecurityException(
+            f"Path traversal blocked: '{relative_path}' attempts to access outside workspace secure bounds."
+        )
+
+    # Secondary relative traversal check
     try:
         target_path.relative_to(WORKSPACE_DIR)
     except ValueError:
