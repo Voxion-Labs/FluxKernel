@@ -2,9 +2,41 @@
   "schema_version": "1.0.0",
   "repository": "Voxion-Labs/FluxKernel",
   "description": "Autonomous commit metadata ledger and release audit tracker",
-  "last_updated": "2026-11-17T05:47:20.302583+00:00",
-  "total_commits_tracked": 8,
+  "last_updated": "2026-11-17T06:05:15.335276+00:00",
+  "total_commits_tracked": 9,
   "commits": [
+    {
+      "sha": "b7ad8277b0406366aa216ba53487677d13ad9b0f",
+      "branch": "main",
+      "message": "feat(security): implement hardened sandbox barrier and atomic rollback engine",
+      "author": {
+        "name": "R-Jena",
+        "email": "rudrajena440@gmail.com",
+        "actor": "R-Jena"
+      },
+      "timestamp": "2026-11-17T11:35:04+05:30",
+      "commit_url": "https://github.com/Voxion-Labs/FluxKernel/commit/b7ad8277b0406366aa216ba53487677d13ad9b0f",
+      "run_id": "44028603381",
+      "files_modified": [
+        "engine/app/api/routes/files.py",
+        "engine/app/core/agentic_loop.py",
+        "engine/app/core/native_bridge.py",
+        "engine/app/core/rollback_manager.py",
+        "engine/app/tools/code_executor.py",
+        "engine/app/tools/file_manager.py",
+        "engine/tests/test_rollback_manager.py",
+        "engine/tests/test_sandbox_security.py",
+        "gateway/internal/handlers/handlers_test.go",
+        "gateway/internal/handlers/workspace.go",
+        "native/include/flux/flux_core.h",
+        "native/src/flux_core.cpp",
+        "native/tests/test_flux_core.cpp",
+        "ops.ps1",
+        "ops.sh",
+        "workspace/README.md"
+      ],
+      "recorded_at": "2026-11-17T06:05:15.335134+00:00"
+    },
     {
       "sha": "830dae42ee955e78ffbd522b3b34c541631c3f7d",
       "branch": "main",
