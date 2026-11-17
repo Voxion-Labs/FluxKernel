@@ -1,5 +1,5 @@
 {
-  "name": "fluxkernel-sentinel-bot",
+  "name": "voxion-bot",
   "url": "https://github.com/Voxion-Labs/FluxKernel",
   "hook_attributes": {
     "url": "https://api.voxionlabs.com/webhooks/bot",

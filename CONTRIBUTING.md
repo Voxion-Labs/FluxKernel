@@ -9,7 +9,7 @@ If you have been authorized to submit a Pull Request, you must adhere strictly t
 ## 1. Architectural Standards
 * **Kernel Safety (Python):** Any modifications to `app/tools/code_executor.py` or `app/tools/os_controller.py`[cite: 3] must undergo strict sandbox validation. You must prove that your changes cannot escape the designated execution container.
 * **Agentic Loop Integrity:** Modifications to `app/core/agentic_loop.py`[cite: 3] must mathematically guarantee termination. Infinite loops or recursive token-burn vulnerabilities will result in instant rejection.
-* **Frontend Isolation:** The Next.js client (`frontend/src/`[cite: 3]) must remain a thin interface. It must not execute business logic or store raw LLM API keys. All cognitive processing remains strictly within the `kernel-engine`[cite: 3].
+* **Frontend Isolation:** The Next.js client (`frontend/src/`[cite: 3]) must remain a thin interface. It must not execute business logic or store raw LLM API keys. All cognitive processing remains strictly within the `engine`[cite: 3].
 
 ## 2. Pull Request (PR) Governance
 1. **[TELEMETRY] Execution Data:** Provide benchmarks proving your changes do not increase token consumption or latency in the `llm_router.py`[cite: 3].

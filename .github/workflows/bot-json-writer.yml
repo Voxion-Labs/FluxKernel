@@ -171,13 +171,13 @@ jobs:
 
       - name: Commit and Push Tracker Update
         run: |
-          git config --local user.name "fluxkernel-bot[bot]"
-          git config --local user.email "fluxkernel-bot[bot]@users.noreply.github.com"
+          git config --local user.name "voxion-bot[bot]"
+          git config --local user.email "voxion-bot[bot]@users.noreply.github.com"
           git add index.json
           if git diff --staged --quiet; then
             echo "No changes detected in index.json. Tracker is up to date."
           else
-            git commit -m "chore(bot): record commit ${GITHUB_SHA::8} in index.json [skip ci]"
+            git commit -m "chore(voxion-bot): record commit ${GITHUB_SHA::8} in index.json [skip ci]"
             git pull --rebase origin main
             git push origin main
           fi

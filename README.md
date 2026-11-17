@@ -46,7 +46,7 @@ FluxKernel/
 ├── frontend/                       # Next.js Command Matrix
 │   ├── src/app/api/                # Localized proxy routes
 │   └── package.json
-├── kernel-engine/                  # Python Cognitive Backend
+├── engine/                         # Python Cognitive Backend
 │   ├── app/core/                   # Agentic logic, RAG, and Security
 │   ├── app/tools/                  # Physical execution arsenal
 │   └── requirements.txt        
@@ -57,7 +57,7 @@ FluxKernel/
 
 ## 3. The Kernel Engine (Cognitive Backend)
 
-Located entirely within the `/kernel-engine` directory, this Python-based environment handles all LLM routing, contextual memory processing, and dangerous physical executions. It exposes a strictly typed FastAPI surface for the frontend to consume.
+Located entirely within the `/engine` directory, this Python-based environment handles all LLM routing, contextual memory processing, and dangerous physical executions. It exposes a strictly typed FastAPI surface for the frontend to consume.
 
 ### 3.1 Core Cognitive Modules (`app/core/`)
 *   **`agentic_loop.py`**: The absolute nucleus of FluxKernel. It orchestrates continuous, multi-step autonomous reasoning cycles. It evaluates task completion probabilities, selects appropriate tools, handles error recovery, and determines execution termination without human intervention.
@@ -79,7 +79,7 @@ The cognitive loop relies on a strictly defined arsenal of execution tools, gran
 The FastAPI engine initializes via `app/main.py`, binding the core loop to WebSocket streams for real-time telemetry:
 
 ```python
-# kernel-engine/app/main.py (Architecture Abstraction)
+# engine/app/main.py (Architecture Abstraction)
 from fastapi import FastAPI, WebSocket
 from app.core.agentic_loop import initialize_autonomous_loop
 
@@ -122,11 +122,11 @@ FluxKernel requires a strict initialization sequence. The Python kernel MUST be 
 The kernel requires dedicated paths and API keys to establish its vectorized memory and tool routing.
 
 ```bash
-cd kernel-engine
+cd engine
 cp .env.example .env
 ```
 
-*Example `kernel-engine/.env` Configuration:*
+*Example `engine/.env` Configuration:*
 ```env
 APP_ENV=production
 # Vector Database & Memory
@@ -151,7 +151,7 @@ docker-compose up -d
 Boot the FastAPI application to establish the cognitive backend and expose the telemetry websockets on Port 8000.
 
 ```bash
-cd kernel-engine
+cd engine
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt

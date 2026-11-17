@@ -22,7 +22,7 @@ __pycache__/
 .env.development.local
 .env.test.local
 .env.production.local
-kernel-engine/.env
+engine/.env
 
 # ── Workspace (AI-generated files, not committed) ─────────────────────────────
 workspace/*

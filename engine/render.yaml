@@ -10,7 +10,7 @@ services:
     runtime: docker
     region: oregon
     plan: starter
-    rootDir: kernel-engine
+    rootDir: engine
     dockerfilePath: Dockerfile
     dockerContext: .
     healthCheckPath: /

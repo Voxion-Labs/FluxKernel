@@ -33,10 +33,27 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── FastAPI Kernel Engine ─────────────────────────────────────────────────────
+  # ── Go High-Performance Gateway (TS-Independent Network Layer) ────────────────
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: fluxkernel_gateway
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      ENGINE_URL: "http://api:8000"
+      ENVIRONMENT: "development"
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # ── FastAPI Engine (Core Python Brain) ────────────────────────────────────────
   api:
     build:
-      context: ./kernel-engine
+      context: ./engine
       dockerfile: Dockerfile
     container_name: fluxkernel_api
     restart: unless-stopped
@@ -45,9 +62,6 @@ services:
       LOCAL_LLM_URL: http://host.docker.internal:11434
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
-      # Uncomment and set your cloud LLM keys for Feature 3:
-      # GEMINI_API_KEY: ""
-      # ANTHROPIC_API_KEY: ""
     ports:
       - "8000:8000"
     depends_on:
@@ -55,6 +69,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - ./workspace:/app/workspace
     extra_hosts:
@@ -63,11 +82,10 @@ services:
   # ── Celery Worker (Feature 1: Background Task Execution) ──────────────────────
   worker:
     build:
-      context: ./kernel-engine
+      context: ./engine
       dockerfile: Dockerfile
     container_name: fluxkernel_worker
     restart: unless-stopped
-    # Override the default CMD to start the Celery worker instead of uvicorn
     command: >
       celery -A app.core.task_queue.celery_app worker
       --loglevel=info
