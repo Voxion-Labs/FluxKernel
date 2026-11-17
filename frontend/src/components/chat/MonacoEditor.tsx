@@ -8,7 +8,7 @@ interface MonacoEditorProps {
   language?: string;
 }
 
-export function MonacoEditor({ code, language = "typescript" }: MonacoEditorProps) {
+export function MonacoEditor({ code, language = "python" }: MonacoEditorProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {

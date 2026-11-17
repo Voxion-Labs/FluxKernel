@@ -93,7 +93,7 @@ _PLAN_SYSTEM = """\
 You are FluxKernel Auto-Pilot. Output ONLY valid JSON with this exact structure:
 {
   "entrypoint": "<workspace-relative path to run for testing>",
-  "language": "<python|cpp|javascript|typescript>",
+  "language": "<python|cpp|go>",
   "files": [
     {"path": "<workspace-relative path>", "content": "<full file content>"}
   ]

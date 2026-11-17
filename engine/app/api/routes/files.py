@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.tools.code_executor import execute_python_code
+from app.tools.code_executor import execute_code_sync
 from app.tools.file_manager import (
     SecurityException,
     get_file_tree,
@@ -23,6 +23,8 @@ class FileWriteRequest(BaseModel):
 
 class CodeExecuteRequest(BaseModel):
     code: str
+    language: str = "python"
+    timeout: int = 30
 
 
 @router.get("/tree")
@@ -62,7 +64,7 @@ async def write_workspace_file(req: FileWriteRequest):
 @router.post("/execute")
 async def execute_workspace_code(req: CodeExecuteRequest):
     try:
-        result = execute_python_code(req.code)
+        result = execute_code_sync(req.code, language=req.language, timeout=req.timeout)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

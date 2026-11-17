@@ -145,7 +145,17 @@ export default function DashboardLayout({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Type:</span>
-                      <span className="font-mono text-foreground text-opacity-80">TypeScript / React</span>
+                      <span className="font-mono text-foreground text-opacity-80">
+                        {activeFile.endsWith(".py")
+                          ? "Python"
+                          : activeFile.endsWith(".go")
+                          ? "Go"
+                          : activeFile.endsWith(".cpp") || activeFile.endsWith(".cc")
+                          ? "C++"
+                          : activeFile.endsWith(".tsx") || activeFile.endsWith(".ts")
+                          ? "TypeScript / React"
+                          : "Source File"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Size:</span>

@@ -37,7 +37,8 @@ do_test() {
     step "Running Python Backend & Native Bridge Verification..."
     if command -v python3 >/dev/null 2>&1; then
         python3 engine/tests/test_native_bridge.py
-        success "Python verification and native bridge passed!"
+        python3 engine/tests/test_code_executor.py
+        success "Python verification, code executor, and native bridge passed!"
     fi
 }
 

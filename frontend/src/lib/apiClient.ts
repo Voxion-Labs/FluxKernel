@@ -48,7 +48,7 @@ export interface WriteResult {
 
 export interface DispatchCodePayload {
   code: string;
-  language?: "python" | "cpp" | "javascript" | "typescript";
+  language?: "python" | "cpp" | "go";
   timeout?: number;
 }
 

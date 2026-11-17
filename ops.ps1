@@ -78,7 +78,8 @@ function Invoke-Test() {
     Write-Step "Running Python Backend & Native Bridge Verification..."
     if (Get-Command python -ErrorAction SilentlyContinue) {
         python engine/tests/test_native_bridge.py
-        Write-Success "Python verification and native bridge passed!"
+        python engine/tests/test_code_executor.py
+        Write-Success "Python verification, code executor, and native bridge passed!"
     }
 }
 

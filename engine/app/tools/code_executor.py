@@ -3,9 +3,8 @@ code_executor.py — Multi-language code execution engine for FluxKernel.
 
 Supports:
   - Python  (.py)  — via sys.executable (same interpreter as the server)
-  - C++     (.cpp) — via g++  (must be on PATH)
-  - JavaScript (.js) — via node (must be on PATH)
-  - TypeScript (.ts) — via ts-node (must be installed globally or via npx)
+  - C++     (.cpp) — via g++ (with C++20 standard support and fallback)
+  - Go      (.go)  — via go run (Go 1.22+)
 
 Short tasks run synchronously (execute_code_sync).
 Long tasks are dispatched to a Celery worker (dispatch_async_execution)
@@ -23,7 +22,7 @@ from app.core.task_queue import celery_app
 from app.tools.file_manager import WORKSPACE_DIR
 
 # ── Types ─────────────────────────────────────────────────────────────────────
-Language = Literal["python", "cpp", "javascript", "typescript", "unknown"]
+Language = Literal["python", "cpp", "go", "unknown"]
 
 ExecutionResult = dict  # {success, stdout, stderr, exit_code, language}
 
@@ -34,10 +33,7 @@ _EXTENSION_MAP: dict[str, Language] = {
     ".cc": "cpp",
     ".cxx": "cpp",
     ".c": "cpp",  # treat as C but compile with g++ (works for C)
-    ".js": "javascript",
-    ".mjs": "javascript",
-    ".ts": "typescript",
-    ".tsx": "typescript",
+    ".go": "go",
 }
 
 
@@ -58,9 +54,7 @@ def _check_available(cmd: str) -> bool:
 
 COMPILER_AVAILABILITY: dict[str, bool] = {
     "g++": _check_available("g++"),
-    "node": _check_available("node"),
-    "ts-node": _check_available("ts-node"),
-    "npx": _check_available("npx"),
+    "go": _check_available("go"),
 }
 
 
@@ -92,6 +86,14 @@ def _cleanup(*paths: Path) -> None:
         p.unlink(missing_ok=True)
 
 
+def _format_timeout_stdout(stdout: str | bytes | None) -> str:
+    if stdout is None:
+        return ""
+    if isinstance(stdout, bytes):
+        return stdout.decode("utf-8", errors="replace")
+    return str(stdout)
+
+
 # ── Language Runners ──────────────────────────────────────────────────────────
 
 
@@ -115,7 +117,7 @@ def _run_python(code: str, timeout: int) -> ExecutionResult:
     except subprocess.TimeoutExpired as e:
         return {
             "success": False,
-            "stdout": e.stdout.decode("utf-8") if e.stdout else "",
+            "stdout": _format_timeout_stdout(e.stdout),
             "stderr": f"Execution halted: time limit exceeded ({timeout}s).",
             "exit_code": 124,
             "language": "python",
@@ -139,14 +141,29 @@ def _run_cpp(code: str, timeout: int) -> ExecutionResult:
     binary = src.with_suffix(binary_ext or ".out")
 
     try:
-        # Step 1: Compile
+        # Step 1: Compile with C++20, falling back to C++17 or C++14 if unsupported by older compiler
         compile_result = subprocess.run(
-            ["g++", "-std=c++17", "-Wall", "-o", str(binary), str(src)],
+            ["g++", "-std=c++20", "-Wall", "-o", str(binary), str(src)],
             capture_output=True,
             text=True,
             timeout=60,
             cwd=str(WORKSPACE_DIR),
         )
+        if (
+            compile_result.returncode != 0
+            and "unrecognized command line option" in compile_result.stderr
+        ):
+            for fallback_std in ["-std=c++17", "-std=c++14"]:
+                compile_result = subprocess.run(
+                    ["g++", fallback_std, "-Wall", "-o", str(binary), str(src)],
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                    cwd=str(WORKSPACE_DIR),
+                )
+                if "unrecognized command line option" not in compile_result.stderr:
+                    break
+
         if compile_result.returncode != 0:
             return {
                 "success": False,
@@ -174,7 +191,7 @@ def _run_cpp(code: str, timeout: int) -> ExecutionResult:
     except subprocess.TimeoutExpired as e:
         return {
             "success": False,
-            "stdout": e.stdout.decode("utf-8") if e.stdout else "",
+            "stdout": _format_timeout_stdout(e.stdout),
             "stderr": f"Execution halted: time limit exceeded ({timeout}s).",
             "exit_code": 124,
             "language": "cpp",
@@ -183,20 +200,27 @@ def _run_cpp(code: str, timeout: int) -> ExecutionResult:
         _cleanup(src, binary)
 
 
-def _run_javascript(code: str, timeout: int) -> ExecutionResult:
-    if not COMPILER_AVAILABILITY["node"]:
+def _run_go(code: str, timeout: int) -> ExecutionResult:
+    if not COMPILER_AVAILABILITY["go"]:
         return {
             "success": False,
             "stdout": "",
-            "stderr": "node is not available on PATH. Install Node.js.",
+            "stderr": "go compiler is not available on PATH. Ensure Go 1.22+ is installed.",
             "exit_code": 127,
-            "language": "javascript",
+            "language": "go",
         }
 
-    src = _make_temp_file(code, ".js")
+    clean_code = code.strip()
+    if not clean_code.startswith("package ") and "package main" not in clean_code:
+        if "func main" not in clean_code and "import " not in clean_code:
+            clean_code = (
+                f'package main\n\nimport (\n\t"fmt"\n)\n\nfunc main() {{\n\t{clean_code}\n}}\n'
+            )
+
+    src = _make_temp_file(clean_code, ".go")
     try:
         result = subprocess.run(
-            ["node", str(src)],
+            ["go", "run", str(src)],
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -207,64 +231,15 @@ def _run_javascript(code: str, timeout: int) -> ExecutionResult:
             "stdout": result.stdout,
             "stderr": result.stderr,
             "exit_code": result.returncode,
-            "language": "javascript",
+            "language": "go",
         }
     except subprocess.TimeoutExpired as e:
         return {
             "success": False,
-            "stdout": e.stdout.decode("utf-8") if e.stdout else "",
+            "stdout": _format_timeout_stdout(e.stdout),
             "stderr": f"Execution halted: time limit exceeded ({timeout}s).",
             "exit_code": 124,
-            "language": "javascript",
-        }
-    finally:
-        _cleanup(src)
-
-
-def _run_typescript(code: str, timeout: int) -> ExecutionResult:
-    """Runs TypeScript via ts-node; falls back to npx ts-node if not global."""
-    src = _make_temp_file(code, ".ts")
-
-    runner = (
-        ["ts-node", "--skip-project"]
-        if COMPILER_AVAILABILITY["ts-node"]
-        else (
-            ["npx", "--yes", "ts-node", "--skip-project"] if COMPILER_AVAILABILITY["npx"] else None
-        )
-    )
-
-    if runner is None:
-        _cleanup(src)
-        return {
-            "success": False,
-            "stdout": "",
-            "stderr": "Neither ts-node nor npx is available on PATH.",
-            "exit_code": 127,
-            "language": "typescript",
-        }
-
-    try:
-        result = subprocess.run(
-            runner + [str(src)],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=str(WORKSPACE_DIR),
-        )
-        return {
-            "success": result.returncode == 0,
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "exit_code": result.returncode,
-            "language": "typescript",
-        }
-    except subprocess.TimeoutExpired as e:
-        return {
-            "success": False,
-            "stdout": e.stdout.decode("utf-8") if e.stdout else "",
-            "stderr": f"Execution halted: time limit exceeded ({timeout}s).",
-            "exit_code": 124,
-            "language": "typescript",
+            "language": "go",
         }
     finally:
         _cleanup(src)
@@ -281,22 +256,20 @@ def execute_code_sync(
     """
     Execute code synchronously in the requested language.
     Suitable for tasks expected to complete within `timeout` seconds.
-    Raises ValueError for unknown languages.
+    Supported languages: python, cpp, go.
     """
     match language:
         case "python":
             return _run_python(code, timeout)
         case "cpp":
             return _run_cpp(code, timeout)
-        case "javascript":
-            return _run_javascript(code, timeout)
-        case "typescript":
-            return _run_typescript(code, timeout)
+        case "go":
+            return _run_go(code, timeout)
         case _:
             return {
                 "success": False,
                 "stdout": "",
-                "stderr": f"Unsupported language: '{language}'. Supported: python, cpp, javascript, typescript.",
+                "stderr": f"Unsupported language: '{language}'. Supported: python, cpp, go.",
                 "exit_code": 1,
                 "language": language,
             }
