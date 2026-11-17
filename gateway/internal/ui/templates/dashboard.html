@@ -102,8 +102,53 @@
   <section class="pane-center">
     <div class="pane-header">
       <span>Agentic Conversation & Decision Stream</span>
-      <span class="badge badge-neutral">Autonomous Loop</span>
+      <span class="badge {{ if and .Loop (eq .Loop.Status "running") }}badge-info{{ else }}badge-neutral{{ end }}">
+        {{ if and .Loop (eq .Loop.Status "running") }}● LOOP RUNNING ({{ .Loop.Iteration }}/{{ .Loop.MaxIterations }}){{ else }}Autonomous Loop{{ end }}
+      </span>
     </div>
+
+    <!-- Autonomous Decision Matrix & Timeline -->
+    {{ if and .Loop .Loop.Cards }}
+    <div class="decision-matrix-card">
+      <div class="decision-matrix-header">
+        <div class="matrix-status-group">
+          <span class="badge {{ if eq .Loop.Status "running" }}badge-info{{ else if eq .Loop.Status "completed" }}badge-success{{ else if eq .Loop.Status "aborted" }}badge-warning{{ else }}badge-neutral{{ end }}">
+            {{ if eq .Loop.Status "running" }}● AUTO-PILOT ACTIVE{{ else if eq .Loop.Status "completed" }}✓ COMPLETED{{ else if eq .Loop.Status "aborted" }}⚠ ABORTED{{ else }}DECISION MATRIX{{ end }}
+          </span>
+          <span class="matrix-loop-id">ID: {{ .Loop.LoopID }}</span>
+        </div>
+        <div class="matrix-actions">
+          {{ if eq .Loop.Status "running" }}
+          <form method="POST" action="/dashboard/loop/abort" style="margin: 0;">
+            <input type="hidden" name="loop_id" value="{{ .Loop.LoopID }}">
+            <input type="hidden" name="theme" value="{{ $.Theme }}">
+            {{ if $.ActiveFile }}<input type="hidden" name="file" value="{{ $.ActiveFile }}">{{ end }}
+            <button type="submit" class="btn-abort">Abort Loop</button>
+          </form>
+          {{ end }}
+          <a href="/dashboard?theme={{ $.Theme }}{{ if $.ActiveFile }}&file={{ $.ActiveFile }}{{ end }}" class="btn-refresh" title="Refresh state">↻ Refresh</a>
+        </div>
+      </div>
+
+      <div class="decision-timeline">
+        {{ range .Loop.Cards }}
+        <div class="timeline-item status-{{ .Status }}">
+          <div class="timeline-badge pill-{{ .Step | lower }}">{{ .Step }}</div>
+          <div class="timeline-body">
+            <div class="timeline-title-row">
+              <span class="timeline-title">{{ .Title }}</span>
+              <span class="timeline-time">{{ .Timestamp }}</span>
+            </div>
+            <div class="timeline-desc">{{ .Description }}</div>
+            {{ if .Details }}
+            <pre class="timeline-details">{{ .Details }}</pre>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }}
+      </div>
+    </div>
+    {{ end }}
 
     <!-- Scrollable Conversation Ledger -->
     <div class="conversation-scroll">
@@ -126,17 +171,29 @@
                 placeholder="Enter engineering directive (e.g. 'Implement a concurrent Levenshtein diff matrix in Go with unit tests')..." 
                 required></textarea>
       <div class="form-toolbar">
-        <select name="persona" class="select-input">
-          <option value="coder">Coder (Strict Architecture & TDD)</option>
-          <option value="architect">Architect (System Design)</option>
-          <option value="auditor">Auditor (Security & Sandbox)</option>
-          <option value="refactorer">Refactorer (Zero-Debt)</option>
-        </select>
-        <input type="hidden" name="theme" value="{{ .Theme }}">
-        {{ if .ActiveFile }}<input type="hidden" name="file" value="{{ .ActiveFile }}">{{ end }}
-        <button type="submit" class="btn-primary">
-          Dispatch Directive ➔
-        </button>
+        <div class="mode-select-group">
+          <label class="mode-option">
+            <input type="radio" name="mode" value="interactive" checked>
+            <span>Interactive Chat</span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="autopilot">
+            <span>Autonomous Loop (Plan → Write → Test → Fix)</span>
+          </label>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <select name="persona" class="select-input">
+            <option value="coder">Coder (Strict Architecture & TDD)</option>
+            <option value="architect">Architect (System Design)</option>
+            <option value="auditor">Auditor (Security & Sandbox)</option>
+            <option value="refactorer">Refactorer (Zero-Debt)</option>
+          </select>
+          <input type="hidden" name="theme" value="{{ .Theme }}">
+          {{ if .ActiveFile }}<input type="hidden" name="file" value="{{ .ActiveFile }}">{{ end }}
+          <button type="submit" class="btn-primary">
+            Dispatch Directive ➔
+          </button>
+        </div>
       </div>
     </form>
   </section>

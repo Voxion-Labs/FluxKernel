@@ -27,7 +27,6 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Literal
 
-from app.core.llm_router import route_llm
 from app.core.rollback_manager import RollbackManager
 from app.tools.code_executor import execute_code_sync
 from app.tools.file_manager import SecurityException, write_file
@@ -61,22 +60,34 @@ class AgenticLoopState:
     files_written: list[DiffEntry] = field(default_factory=list)
     last_test_result: dict | None = None
     event_queue: asyncio.Queue = field(default_factory=asyncio.Queue)
+    events: list[dict] = field(default_factory=list)
 
     def abort(self) -> None:
         self.abort_flag = True
 
     async def emit(self, event_type: str, payload: dict) -> None:
-        """Push an SSE-ready event onto the queue."""
-        await self.event_queue.put({"event": event_type, "loop_id": self.loop_id, **payload})
+        """Push an SSE-ready event onto the queue and record in history."""
+        event_payload = {"event": event_type, "loop_id": self.loop_id, **payload}
+        self.events.append(event_payload)
+        await self.event_queue.put(event_payload)
 
 
 # ── Registry ──────────────────────────────────────────────────────────────────
 # In a multi-worker setup this would be Redis-backed. For now it's in-process.
 _active_loops: dict[str, AgenticLoopState] = {}
+_latest_loop_id: str | None = None
 
 
 def get_loop(loop_id: str) -> AgenticLoopState | None:
     return _active_loops.get(loop_id)
+
+
+def get_latest_loop() -> AgenticLoopState | None:
+    """Return the most recently initiated agentic loop state."""
+    global _latest_loop_id
+    if _latest_loop_id and _latest_loop_id in _active_loops:
+        return _active_loops[_latest_loop_id]
+    return None
 
 
 def abort_loop(loop_id: str) -> bool:
@@ -127,6 +138,8 @@ def _build_fix_prompt(user_prompt: str, code_map: dict[str, str], stderr: str) -
 
 
 async def _call_llm(prompt: str, system: str, persona: str, sys_prompt: str) -> str:
+    from app.core.llm_router import route_llm
+
     result = await route_llm(
         prompt=prompt,
         persona_name=persona,
@@ -321,6 +334,7 @@ def create_loop(
     Initialise a new loop state and register it. Returns (loop_id, state).
     The caller is responsible for scheduling run_agentic_loop as an asyncio task.
     """
+    global _latest_loop_id
     loop_id = str(uuid.uuid4())
     state = AgenticLoopState(
         loop_id=loop_id,
@@ -329,4 +343,5 @@ def create_loop(
         initial_prompt=initial_prompt,
     )
     _active_loops[loop_id] = state
+    _latest_loop_id = loop_id
     return loop_id, state

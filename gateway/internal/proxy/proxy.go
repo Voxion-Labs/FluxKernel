@@ -103,6 +103,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/dashboard", h.uiHandler)
 	mux.HandleFunc("/dashboard/dispatch", h.uiHandler.HandleDispatch)
 	mux.HandleFunc("/dashboard/rollback", h.uiHandler.HandleRollback)
+	mux.HandleFunc("/dashboard/loop/abort", h.uiHandler.HandleAbortLoop)
 	mux.Handle("/static/", h.uiHandler.ServeStatic())
 
 	// High-Performance Services (replacing TypeScript Next.js API routes)

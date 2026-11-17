@@ -16,7 +16,13 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.core.agentic_loop import abort_loop, create_loop, get_loop, run_agentic_loop
+from app.core.agentic_loop import (
+    abort_loop,
+    create_loop,
+    get_latest_loop,
+    get_loop,
+    run_agentic_loop,
+)
 
 router = APIRouter(prefix="/autopilot", tags=["autopilot"])
 
@@ -87,8 +93,11 @@ async def abort(loop_id: str) -> dict:
 
 @router.get("/{loop_id}/status")
 async def get_status(loop_id: str) -> dict:
-    """Instant snapshot of a loop's current state (no streaming)."""
-    state = get_loop(loop_id)
+    """Instant snapshot of a loop's current state (no streaming). Supports 'latest'."""
+    if loop_id == "latest":
+        state = get_latest_loop()
+    else:
+        state = get_loop(loop_id)
     if not state:
         raise HTTPException(status_code=404, detail=f"Loop '{loop_id}' not found.")
     return {
@@ -98,6 +107,8 @@ async def get_status(loop_id: str) -> dict:
         "max_iterations": state.max_iterations,
         "files_written": len(state.files_written),
         "abort_flag": state.abort_flag,
+        "events": state.events,
+        "last_test_result": state.last_test_result,
     }
 
 

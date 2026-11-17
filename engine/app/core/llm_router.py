@@ -5,8 +5,15 @@ import subprocess
 import sys
 from typing import Any
 
-import httpx
-import psutil
+try:
+    import httpx
+except ImportError:
+    httpx = None
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
 from pydantic import BaseModel, ValidationError
 
 try:
@@ -46,7 +53,10 @@ def _get_vram_free_gb() -> float | None:
 
 
 def assess_system_load() -> dict[str, Any]:
-    ram_available_gb = psutil.virtual_memory().available / (1024**3)
+    if psutil is not None:
+        ram_available_gb = psutil.virtual_memory().available / (1024**3)
+    else:
+        ram_available_gb = 8.0  # safe default fallback
     vram_gb = _get_vram_free_gb()
     return {
         "ram_available_gb": ram_available_gb,
@@ -104,6 +114,9 @@ async def _call_ollama(
             f"{system_prompt}\n\n{_json_guidance(response_model)}\n\nUser: {prompt_body}\nAssistant:"
         )
         request_body["format"] = "json"
+
+    if httpx is None:
+        raise RuntimeError("httpx is required for Ollama calls but is not installed.")
 
     async with httpx.AsyncClient() as client:
         response = await client.post(

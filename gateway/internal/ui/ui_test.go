@@ -82,9 +82,10 @@ func TestUIHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("Directive Form Dispatch", func(t *testing.T) {
+	t.Run("Directive Form Dispatch (Interactive)", func(t *testing.T) {
 		form := url.Values{}
 		form.Set("prompt", "Implement pure Go data structures")
+		form.Set("mode", "interactive")
 		form.Set("persona", "coder")
 		form.Set("theme", "light")
 
@@ -101,6 +102,62 @@ func TestUIHandler(t *testing.T) {
 		location := rec.Header().Get("Location")
 		if !strings.Contains(location, "/dashboard") {
 			t.Errorf("expected redirect to /dashboard, got %s", location)
+		}
+	})
+
+	t.Run("Directive Form Dispatch (Autonomous Auto-Pilot Loop)", func(t *testing.T) {
+		form := url.Values{}
+		form.Set("prompt", "Build a high-performance memory allocator in C++20")
+		form.Set("mode", "autopilot")
+		form.Set("persona", "architect")
+		form.Set("theme", "light")
+
+		req := httptest.NewRequest(http.MethodPost, "/dashboard/dispatch", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+
+		h.HandleDispatch(rec, req)
+
+		if rec.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect, got %d", rec.Code)
+		}
+
+		// Verify that decision matrix cards are rendered on the dashboard
+		reqDash := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
+		recDash := httptest.NewRecorder()
+		h.ServeHTTP(recDash, reqDash)
+
+		dashBody := recDash.Body.String()
+		if !strings.Contains(dashBody, "decision-matrix-card") {
+			t.Errorf("expected decision matrix card to be rendered on dashboard")
+		}
+		if !strings.Contains(dashBody, "timeline-item") {
+			t.Errorf("expected timeline item to be rendered in decision stream")
+		}
+	})
+
+	t.Run("Abort Loop Form Dispatch", func(t *testing.T) {
+		form := url.Values{}
+		form.Set("theme", "light")
+
+		req := httptest.NewRequest(http.MethodPost, "/dashboard/loop/abort", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+
+		h.HandleAbortLoop(rec, req)
+
+		if rec.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect, got %d", rec.Code)
+		}
+
+		// Check dashboard shows aborted status
+		reqDash := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
+		recDash := httptest.NewRecorder()
+		h.ServeHTTP(recDash, reqDash)
+
+		dashBody := recDash.Body.String()
+		if !strings.Contains(dashBody, "ABORTED") {
+			t.Errorf("expected ABORTED status in dashboard body")
 		}
 	})
 
@@ -133,6 +190,9 @@ func TestUIHandler(t *testing.T) {
 		body := rec.Body.String()
 		if !strings.Contains(body, "FluxKernel Enterprise Minimalist UI Stylesheet") {
 			t.Errorf("CSS missing enterprise theme signature")
+		}
+		if !strings.Contains(body, "decision-matrix-card") {
+			t.Errorf("CSS missing decision-matrix-card styles")
 		}
 	})
 }

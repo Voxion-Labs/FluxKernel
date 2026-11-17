@@ -81,6 +81,7 @@ function Invoke-Test() {
         python engine/tests/test_code_executor.py
         python engine/tests/test_sandbox_security.py
         python engine/tests/test_rollback_manager.py
+        python engine/tests/test_agentic_loop.py
         python engine/tests/test_e2e_triumvirate.py
         Write-Success "Python verification, sandbox security, rollback engine, and native bridge passed!"
     }

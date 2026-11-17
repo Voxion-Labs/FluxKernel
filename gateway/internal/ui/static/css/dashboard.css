@@ -381,6 +381,179 @@ body {
   color: var(--danger);
 }
 
+/* ── Decision Matrix & Autonomous Timeline ────────────────────────────────── */
+
+.decision-matrix-card {
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.decision-matrix-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.matrix-status-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.matrix-loop-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.matrix-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-abort {
+  background-color: var(--danger-subtle);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-abort:hover {
+  background-color: var(--danger);
+  color: #ffffff;
+}
+
+.btn-refresh {
+  background-color: var(--bg-body);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.btn-refresh:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.decision-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background-color: var(--bg-body);
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.timeline-item.status-success {
+  border-left: 3px solid var(--success);
+}
+
+.timeline-item.status-failed {
+  border-left: 3px solid var(--danger);
+}
+
+.timeline-item.status-running {
+  border-left: 3px solid var(--accent);
+}
+
+.timeline-item.status-warning {
+  border-left: 3px solid var(--warning);
+}
+
+.timeline-item.status-info {
+  border-left: 3px solid var(--text-muted);
+}
+
+.timeline-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  height: fit-content;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.pill-plan { background-color: rgba(37, 99, 235, 0.1); color: var(--accent); }
+.pill-snapshot { background-color: rgba(147, 51, 234, 0.1); color: #9333ea; }
+.pill-write { background-color: rgba(217, 119, 6, 0.1); color: var(--warning); }
+.pill-test { background-color: rgba(13, 148, 136, 0.1); color: #0d9488; }
+.pill-fix { background-color: rgba(234, 88, 12, 0.1); color: #ea580c; }
+.pill-security { background-color: var(--danger-subtle); color: var(--danger); }
+.pill-completed { background-color: var(--success-subtle); color: var(--success); }
+.pill-aborted { background-color: var(--danger-subtle); color: var(--danger); }
+.pill-router { background-color: var(--bg-elevated); color: var(--text-secondary); }
+
+.timeline-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.timeline-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.timeline-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.timeline-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.timeline-desc {
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.timeline-details {
+  margin-top: 6px;
+  padding: 6px 10px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 /* Center Pane: Agent Directive & Conversation */
 .pane-center {
   flex: 1;
@@ -473,10 +646,33 @@ body {
   border-color: var(--border-focus);
 }
 
+.mode-select-group {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.mode-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mode-option input[type="radio"] {
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
 .form-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .select-input {
