@@ -11,19 +11,28 @@ import (
 	"time"
 
 	"github.com/Voxion-Labs/FluxKernel/gateway/internal/config"
+	"github.com/Voxion-Labs/FluxKernel/gateway/internal/handlers"
 )
 
 // GatewayVersion is the current build version of the Go Gateway.
-const GatewayVersion = "0.1.0-alpha.1"
+const GatewayVersion = "0.2.0-phase2"
 
 // Handler orchestrates routing and reverse proxying to the Python core engine.
 type Handler struct {
 	cfg          *config.Config
 	reverseProxy *httputil.ReverseProxy
 	engineTarget *url.URL
+
+	// Specialized Handlers replacing TS routes
+	chatHandler      *handlers.ChatHandler
+	autopilotHandler *handlers.AutopilotHandler
+	tasksHandler     *handlers.TasksHandler
+	webHandler       *handlers.WebHandler
+	webhookHandler   *handlers.WebhookHandler
+	workspaceHandler *handlers.WorkspaceHandler
 }
 
-// NewHandler initializes a new Gateway Handler with an upstream reverse proxy.
+// NewHandler initializes a new Gateway Handler with specialized route handlers.
 func NewHandler(cfg *config.Config) (*Handler, error) {
 	target, err := url.Parse(cfg.EngineURL)
 	if err != nil {
@@ -32,7 +41,6 @@ func NewHandler(cfg *config.Config) (*Handler, error) {
 
 	rp := httputil.NewSingleHostReverseProxy(target)
 
-	// Custom Director to ensure proper forwarding headers
 	originalDirector := rp.Director
 	rp.Director = func(req *http.Request) {
 		originalDirector(req)
@@ -40,7 +48,6 @@ func NewHandler(cfg *config.Config) (*Handler, error) {
 		req.Header.Set("X-Gateway-Origin", "fluxkernel-go-gateway")
 	}
 
-	// ModifyResponse to support low-latency streaming (SSE)
 	rp.ModifyResponse = func(resp *http.Response) error {
 		if strings.Contains(resp.Header.Get("Content-Type"), "text/event-stream") {
 			resp.Header.Set("X-Accel-Buffering", "no")
@@ -60,21 +67,48 @@ func NewHandler(cfg *config.Config) (*Handler, error) {
 		})
 	}
 
+	client := &http.Client{}
+
 	return &Handler{
-		cfg:          cfg,
-		reverseProxy: rp,
-		engineTarget: target,
+		cfg:              cfg,
+		reverseProxy:     rp,
+		engineTarget:     target,
+		chatHandler:      handlers.NewChatHandler(cfg, client),
+		autopilotHandler: handlers.NewAutopilotHandler(cfg, client),
+		tasksHandler:     handlers.NewTasksHandler(cfg, client),
+		webHandler:       handlers.NewWebHandler(cfg, client),
+		webhookHandler:   handlers.NewWebhookHandler(cfg),
+		workspaceHandler: handlers.NewWorkspaceHandler(cfg),
 	}, nil
 }
 
-// RegisterRoutes registers gateway endpoints and upstream proxy handlers on a ServeMux.
+// RegisterRoutes registers gateway endpoints, native services, and upstream proxy handlers.
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	// Health & Operational telemetry
+	// Telemetry & Health probes
 	mux.HandleFunc("/healthz", h.handleHealthz)
 	mux.HandleFunc("/readyz", h.handleReadyz)
 	mux.HandleFunc("/version", h.handleVersion)
 
-	// Upstream API route forwarding
+	// High-Performance Services (replacing TypeScript Next.js API routes)
+	mux.Handle("/api/chat", h.chatHandler)
+	mux.Handle("/api/chat/", h.chatHandler)
+
+	mux.Handle("/api/autopilot", h.autopilotHandler)
+	mux.Handle("/api/autopilot/", h.autopilotHandler)
+
+	mux.Handle("/api/tasks", h.tasksHandler)
+	mux.Handle("/api/tasks/", h.tasksHandler)
+
+	mux.Handle("/api/web", h.webHandler)
+	mux.Handle("/api/web/", h.webHandler)
+
+	mux.Handle("/api/webhooks", h.webhookHandler)
+	mux.Handle("/api/webhooks/", h.webhookHandler)
+
+	mux.Handle("/api/workspace", h.workspaceHandler)
+	mux.Handle("/api/workspace/", h.workspaceHandler)
+
+	// General Upstream Proxy Fallback (e.g. /api/v1/...)
 	mux.HandleFunc("/api/", h.handleUpstreamProxy)
 	mux.HandleFunc("/", h.handleRoot)
 }
@@ -110,7 +144,6 @@ func (h *Handler) handleVersion(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		// Pass-through to upstream engine if not a root health probe
 		h.reverseProxy.ServeHTTP(w, r)
 		return
 	}

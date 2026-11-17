@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -11,6 +12,7 @@ type Config struct {
 	Port           string
 	EngineURL      string
 	Environment    string
+	WorkspaceDir   string
 	ReadTimeout    time.Duration
 	WriteTimeout   time.Duration
 	AllowedOrigins string
@@ -41,6 +43,22 @@ func Load() *Config {
 		origins = "*"
 	}
 
+	workspaceDir := os.Getenv("WORKSPACE_DIR")
+	if workspaceDir == "" {
+		// Look for workspace in parent directory or current directory
+		if _, err := os.Stat("workspace"); err == nil {
+			workspaceDir = "workspace"
+		} else if _, err := os.Stat("../workspace"); err == nil {
+			workspaceDir = "../workspace"
+		} else {
+			workspaceDir = "workspace"
+		}
+	}
+	absWorkspace, err := filepath.Abs(workspaceDir)
+	if err == nil {
+		workspaceDir = absWorkspace
+	}
+
 	readTimeoutSec, _ := strconv.Atoi(os.Getenv("READ_TIMEOUT_SECONDS"))
 	if readTimeoutSec <= 0 {
 		readTimeoutSec = 30
@@ -55,6 +73,7 @@ func Load() *Config {
 		Port:           port,
 		EngineURL:      engineURL,
 		Environment:    env,
+		WorkspaceDir:   workspaceDir,
 		ReadTimeout:    time.Duration(readTimeoutSec) * time.Second,
 		WriteTimeout:   time.Duration(writeTimeoutSec) * time.Second,
 		AllowedOrigins: origins,

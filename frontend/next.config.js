@@ -13,10 +13,11 @@ const nextConfig = {
     ],
   },
   async rewrites() {
+    const gatewayUrl = process.env.GATEWAY_URL || "http://localhost:8080";
     return [
       {
-        source: "/api/proxy/:path*",
-        destination: `${process.env.BACKEND_URL || "http://localhost:8000"}/api/v1/:path*`,
+        source: "/api/:path*",
+        destination: `${gatewayUrl}/api/:path*`,
       },
     ];
   },
