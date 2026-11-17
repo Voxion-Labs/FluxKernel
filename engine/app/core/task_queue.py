@@ -7,7 +7,9 @@ Workers are started separately via:
 The broker and result backend both default to localhost Redis but are
 overridable via CELERY_BROKER_URL / CELERY_RESULT_BACKEND in the environment.
 """
+
 import os
+
 from celery import Celery
 
 BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
@@ -28,7 +30,7 @@ celery_app.conf.update(
     # Tasks results expire after 1 hour to keep Redis lean
     result_expires=3600,
     # Prevent tasks from running forever
-    task_time_limit=600,       # hard kill at 10 min
+    task_time_limit=600,  # hard kill at 10 min
     task_soft_time_limit=540,  # SIGTERM at 9 min (allows cleanup)
     # Auto-discover tasks in the tools package
     imports=["app.tools.code_executor"],

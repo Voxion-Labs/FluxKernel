@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
-from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ValidationError
@@ -21,7 +20,6 @@ from app.core.persona_engine import (
     PersonaEngine,
     ProjectModeResponse,
     VerificationResult,
-    normalize_mode,
 )
 from app.database.connection import get_db
 from app.database.models import ChatSession, Message, Persona
@@ -53,7 +51,9 @@ def _sanitize_relative_path(raw_path: str | None, fallback_name: str) -> str:
     return "/".join(safe_parts) or fallback_name
 
 
-async def _parse_chat_request(request: Request) -> tuple[ChatRequest, list[UploadFile], list[dict[str, Any]]]:
+async def _parse_chat_request(
+    request: Request,
+) -> tuple[ChatRequest, list[UploadFile], list[dict[str, Any]]]:
     content_type = request.headers.get("content-type", "").lower()
 
     if "multipart/form-data" in content_type:
@@ -67,17 +67,15 @@ async def _parse_chat_request(request: Request) -> tuple[ChatRequest, list[Uploa
         except json.JSONDecodeError:
             attachments_meta = []
 
-        files = [
-            value
-            for _, value in form.multi_items()
-            if isinstance(value, UploadFile)
-        ]
+        files = [value for _, value in form.multi_items() if isinstance(value, UploadFile)]
 
         return (
             ChatRequest(
                 prompt=prompt,
                 persona_name=persona_name,
-                session_id=int(session_id_value) if session_id_value not in {None, "", "null"} else None,
+                session_id=int(session_id_value)
+                if session_id_value not in {None, "", "null"}
+                else None,
             ),
             files,
             attachments_meta if isinstance(attachments_meta, list) else [],
@@ -135,7 +133,9 @@ async def _save_attachments(
     root.mkdir(parents=True, exist_ok=True)
 
     for index, upload in enumerate(files):
-        meta = metadata[index] if index < len(metadata) and isinstance(metadata[index], dict) else {}
+        meta = (
+            metadata[index] if index < len(metadata) and isinstance(metadata[index], dict) else {}
+        )
         relative_name = _sanitize_relative_path(
             meta.get("relativePath") or meta.get("relative_path"),
             upload.filename or f"attachment_{index}",
@@ -244,7 +244,9 @@ async def chat_endpoint(request: Request, db: Session = Depends(get_db)):
 
     content = llm_result["content"]
     if resolved.mode is CognitiveMode.PROJECT:
-        pinned_paths = sorted({chunk.path for chunk in resolved.metadata.get("retrieved_chunks", [])})
+        pinned_paths = sorted(
+            {chunk.path for chunk in resolved.metadata.get("retrieved_chunks", [])}
+        )
         content = _merge_project_payload(content, pinned_paths)
     elif resolved.mode is CognitiveMode.CODER:
         content = _verify_coder_payload(content)
@@ -265,4 +267,3 @@ async def chat_endpoint(request: Request, db: Session = Depends(get_db)):
         routed_to=llm_result.get("routed_to", "unknown"),
         routing_reason=llm_result.get("reason", ""),
     )
-

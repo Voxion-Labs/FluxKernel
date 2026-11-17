@@ -18,17 +18,18 @@ Architecture:
   - The loop asyncio task yields control between steps so the SSE endpoint
     can flush its queue.
 """
+
 from __future__ import annotations
 
 import asyncio
 import json
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, AsyncGenerator, Literal
+from typing import Literal
 
 from app.core.llm_router import route_llm
-from app.tools.code_executor import execute_code_sync, detect_language
-from app.tools.file_manager import write_file, read_file, WORKSPACE_DIR
+from app.tools.code_executor import execute_code_sync
+from app.tools.file_manager import write_file
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 MAX_ITERATIONS = 5
@@ -36,9 +37,11 @@ MAX_ITERATIONS = 5
 
 # ── Data models ───────────────────────────────────────────────────────────────
 
+
 @dataclass
 class DiffEntry:
     """A single file change produced during a loop iteration."""
+
     path: str
     content: str
     iteration: int
@@ -63,9 +66,7 @@ class AgenticLoopState:
 
     async def emit(self, event_type: str, payload: dict) -> None:
         """Push an SSE-ready event onto the queue."""
-        await self.event_queue.put(
-            {"event": event_type, "loop_id": self.loop_id, **payload}
-        )
+        await self.event_queue.put({"event": event_type, "loop_id": self.loop_id, **payload})
 
 
 # ── Registry ──────────────────────────────────────────────────────────────────
@@ -115,9 +116,7 @@ def _build_plan_prompt(user_prompt: str) -> str:
 
 
 def _build_fix_prompt(user_prompt: str, code_map: dict[str, str], stderr: str) -> str:
-    files_block = "\n".join(
-        f"--- {path} ---\n{content}" for path, content in code_map.items()
-    )
+    files_block = "\n".join(f"--- {path} ---\n{content}" for path, content in code_map.items())
     return (
         f"Original task: {user_prompt}\n\n"
         f"Current files:\n{files_block}\n\n"
@@ -141,13 +140,13 @@ def _parse_plan(raw: str) -> dict:
     raw = raw.strip()
     if raw.startswith("```"):
         raw = raw.split("```", 2)[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
+        raw = raw.removeprefix("json")
     raw = raw.strip().rstrip("`").strip()
     return json.loads(raw)
 
 
 # ── Core Loop ─────────────────────────────────────────────────────────────────
+
 
 async def run_agentic_loop(
     loop_id: str,
@@ -178,7 +177,10 @@ async def run_agentic_loop(
             await state.emit("loop_aborted", {"iteration": iteration})
             return
 
-        await state.emit("iteration_start", {"iteration": iteration, "max_iterations": state.max_iterations})
+        await state.emit(
+            "iteration_start",
+            {"iteration": iteration, "max_iterations": state.max_iterations},
+        )
 
         # ── PLAN / FIX: Call LLM ──────────────────────────────────────────────
         try:
@@ -211,9 +213,14 @@ async def run_agentic_loop(
 
         # ── TEST: Execute the entrypoint ──────────────────────────────────────
         if not entrypoint:
-            await state.emit("test_skip", {"iteration": iteration, "reason": "No entrypoint specified in plan"})
+            await state.emit(
+                "test_skip",
+                {"iteration": iteration, "reason": "No entrypoint specified in plan"},
+            )
             # Treat missing entrypoint as a failure to fix
-            current_prompt = _build_fix_prompt(initial_prompt, code_map, "No entrypoint was returned by the planner.")
+            current_prompt = _build_fix_prompt(
+                initial_prompt, code_map, "No entrypoint was returned by the planner."
+            )
             current_system = _FIX_SYSTEM
             continue
 
@@ -226,13 +233,16 @@ async def run_agentic_loop(
         )
         state.last_test_result = test_result
 
-        await state.emit("test_result", {
-            "iteration":  iteration,
-            "success":    test_result["success"],
-            "stdout":     test_result.get("stdout", ""),
-            "stderr":     test_result.get("stderr", ""),
-            "exit_code":  test_result.get("exit_code", -1),
-        })
+        await state.emit(
+            "test_result",
+            {
+                "iteration": iteration,
+                "success": test_result["success"],
+                "stdout": test_result.get("stdout", ""),
+                "stderr": test_result.get("stderr", ""),
+                "exit_code": test_result.get("exit_code", -1),
+            },
+        )
 
         # ── SUCCESS: Batch all diffs and emit final event ─────────────────────
         if test_result["success"]:
@@ -241,11 +251,14 @@ async def run_agentic_loop(
                 for d in state.files_written
             ]
             state.status = "completed"
-            await state.emit("loop_done", {
-                "iterations_used": iteration,
-                "diff_batch": diff_batch,
-                "stdout": test_result.get("stdout", ""),
-            })
+            await state.emit(
+                "loop_done",
+                {
+                    "iterations_used": iteration,
+                    "diff_batch": diff_batch,
+                    "stdout": test_result.get("stdout", ""),
+                },
+            )
             return
 
         # ── FAIL: Prepare fix prompt for next iteration ───────────────────────
@@ -254,9 +267,7 @@ async def run_agentic_loop(
             await state.emit("loop_aborted", {"iteration": iteration})
             return
 
-        current_prompt = _build_fix_prompt(
-            initial_prompt, code_map, test_result.get("stderr", "")
-        )
+        current_prompt = _build_fix_prompt(initial_prompt, code_map, test_result.get("stderr", ""))
         current_system = _FIX_SYSTEM
 
     # ── EXHAUSTED: All iterations used; surface batch for user review ──────────
@@ -265,15 +276,19 @@ async def run_agentic_loop(
         for d in state.files_written
     ]
     state.status = "completed"
-    await state.emit("loop_done", {
-        "iterations_used": state.max_iterations,
-        "diff_batch": diff_batch,
-        "note": "Max iterations reached. Tests may not be passing — please review the diff.",
-        "stdout": state.last_test_result.get("stdout", "") if state.last_test_result else "",
-    })
+    await state.emit(
+        "loop_done",
+        {
+            "iterations_used": state.max_iterations,
+            "diff_batch": diff_batch,
+            "note": "Max iterations reached. Tests may not be passing — please review the diff.",
+            "stdout": state.last_test_result.get("stdout", "") if state.last_test_result else "",
+        },
+    )
 
 
 # ── Factory ────────────────────────────────────────────────────────────────────
+
 
 def create_loop(
     initial_prompt: str,

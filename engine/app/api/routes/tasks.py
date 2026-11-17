@@ -6,9 +6,10 @@ Endpoints:
   GET /api/v1/tasks/{task_id}/stream   — SSE stream that pushes updates
                                          until SUCCESS or FAILURE
 """
+
 import asyncio
 import json
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from celery.result import AsyncResult
 from fastapi import APIRouter
@@ -31,7 +32,7 @@ def _serialize_result(task_id: str) -> dict:
     payload: dict = {"task_id": task_id, "state": state}
 
     if state == "SUCCESS":
-        payload.update(result.result or {})   # merges stdout/stderr/success/language
+        payload.update(result.result or {})  # merges stdout/stderr/success/language
     elif state == "FAILURE":
         payload["stderr"] = str(result.result)
         payload["success"] = False

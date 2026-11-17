@@ -28,7 +28,9 @@ class ToolDescriptor(BaseModel):
 
 class ProjectModeResponse(BaseModel):
     type: str = "project_mode"
-    answer: str = Field(..., description="Grounded response built from the retrieved project context.")
+    answer: str = Field(
+        ..., description="Grounded response built from the retrieved project context."
+    )
     retrieved_context_paths: list[str] = Field(default_factory=list)
     pinned_paths: list[str] = Field(default_factory=list)
     follow_up_actions: list[str] = Field(default_factory=list)
@@ -100,7 +102,10 @@ class DataArtifact(BaseModel):
 
 class DataAnalysisPlan(BaseModel):
     summary: str
-    python_code: str = Field(..., description="Pure Python analysis using pandas/matplotlib and the provided dataset paths.")
+    python_code: str = Field(
+        ...,
+        description="Pure Python analysis using pandas/matplotlib and the provided dataset paths.",
+    )
     expected_artifacts: list[str] = Field(default_factory=list)
 
 
@@ -220,7 +225,9 @@ class PersonaEngine:
                     "retrieved_chunks": retrieved,
                     "pinned_paths": sorted({chunk.path for chunk in retrieved}),
                 },
-                system_prompt=self._build_project_prompt(base_system_prompt, retrieved, attachments),
+                system_prompt=self._build_project_prompt(
+                    base_system_prompt, retrieved, attachments
+                ),
             )
 
         if mode is CognitiveMode.PLANNER:
@@ -267,7 +274,9 @@ class PersonaEngine:
         attachments: list[AttachmentContext],
     ) -> str:
         context_block = build_context_block(retrieved)
-        attachment_manifest = json.dumps([attachment.describe() for attachment in attachments], indent=2)
+        attachment_manifest = json.dumps(
+            [attachment.describe() for attachment in attachments], indent=2
+        )
         return (
             f"{base_system_prompt}\n\n"
             "You are FluxKernel in PROJECT MODE.\n"
@@ -308,7 +317,9 @@ class PersonaEngine:
         base_system_prompt: str,
         attachments: list[AttachmentContext],
     ) -> str:
-        attachment_manifest = json.dumps([attachment.describe() for attachment in attachments], indent=2)
+        attachment_manifest = json.dumps(
+            [attachment.describe() for attachment in attachments], indent=2
+        )
         return (
             f"{base_system_prompt}\n\n"
             "You are FluxKernel in DATA ANALYSIS MODE.\n"
@@ -318,4 +329,3 @@ class PersonaEngine:
             "Save charts as PNGs and additionally emit base64 text artifacts into the workspace.\n\n"
             f"Attached datasets and media:\n{attachment_manifest}"
         )
-

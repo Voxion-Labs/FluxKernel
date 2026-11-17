@@ -4,13 +4,13 @@ os_controller.py — Deep OS Application Control for FluxKernel.
 Provides tools for the LLM to control applications, type text, and evaluate the desktop
 environment using visual/accessibility grounding to prevent hallucinations.
 """
+
 from __future__ import annotations
 
-import sys
-import platform
 import subprocess
-import time
-from typing import Literal, Optional
+import sys
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 try:
@@ -29,18 +29,26 @@ except ImportError:
 
 class OSCommandSchema(BaseModel):
     """Schema for requesting a deep OS action."""
-    action: Literal["open_app", "click_ui_element", "type_text", "transcribe_mic", "take_screenshot"] = Field(
-        ..., description="The type of OS action to perform."
+
+    action: Literal[
+        "open_app", "click_ui_element", "type_text", "transcribe_mic", "take_screenshot"
+    ] = Field(..., description="The type of OS action to perform.")
+    app_name: str | None = Field(None, description="The name of the application to interact with.")
+    element_name: str | None = Field(
+        None, description="The specific UI element name/text to interact with."
     )
-    app_name: Optional[str] = Field(None, description="The name of the application to interact with.")
-    element_name: Optional[str] = Field(None, description="The specific UI element name/text to interact with.")
-    text: Optional[str] = Field(None, description="The text to type if action is 'type_text'.")
-    require_consent: bool = Field(True, description="Always request user consent before executing destructive or GUI actions.")
+    text: str | None = Field(None, description="The text to type if action is 'type_text'.")
+    require_consent: bool = Field(
+        True,
+        description="Always request user consent before executing destructive or GUI actions.",
+    )
 
 
 class OSController:
     @staticmethod
-    def _get_window_bounds_win32(app_name: str, element_name: str | None = None) -> tuple[int, int] | None:
+    def _get_window_bounds_win32(
+        app_name: str, element_name: str | None = None
+    ) -> tuple[int, int] | None:
         """Grounds coordinates securely using Windows accessibility trees to avoid blind guesses."""
         if not Desktop:
             return None
@@ -50,7 +58,7 @@ class OSController:
             window = desktop.window(title_re=f".*{app_name}.*")
             if not window.exists():
                 return None
-            
+
             if element_name:
                 element = window.child_window(title_re=f".*{element_name}.*", control_type="Button")
                 rect = element.rectangle()
@@ -74,9 +82,9 @@ class OSController:
         end tell
         '''
         try:
-            res = subprocess.check_output(['osascript', '-e', script], text=True).strip()
+            res = subprocess.check_output(["osascript", "-e", script], text=True).strip()
             # Example response: x, y, width, height
-            parts = [int(x.strip()) for x in res.split(',')]
+            parts = [int(x.strip()) for x in res.split(",")]
             if len(parts) == 4:
                 return parts[0] + (parts[2] // 2), parts[1] + (parts[3] // 2)
         except Exception:
@@ -87,7 +95,7 @@ class OSController:
     def execute_action(cls, command: OSCommandSchema) -> dict:
         """
         Executes the validated OS command.
-        
+
         Returns a WAITING_CONSENT context if the action requires user approval.
         """
         if command.require_consent and command.action not in ["take_screenshot"]:
@@ -95,7 +103,7 @@ class OSController:
             return {
                 "status": "WAITING_CONSENT",
                 "message": f"Do you authorize me to perform '{command.action}' on '{command.app_name or 'System'}'?",
-                "pending_payload": command.model_dump()
+                "pending_payload": command.model_dump(),
             }
 
         # Bypassed or consent granted (in a real flow, consent is managed outside, but here is execution)
@@ -105,7 +113,10 @@ class OSController:
             elif sys.platform == "darwin":
                 subprocess.Popen(["open", "-a", command.app_name])
             else:
-                return {"status": "error", "message": "OS not supported for open_app natively."}
+                return {
+                    "status": "error",
+                    "message": "OS not supported for open_app natively.",
+                }
             return {"status": "success", "message": f"Opened {command.app_name}"}
 
         elif command.action == "click_ui_element" and command.app_name:
@@ -115,23 +126,38 @@ class OSController:
                 coords = cls._get_window_bounds_win32(command.app_name, command.element_name)
             elif sys.platform == "darwin":
                 coords = cls._get_window_bounds_macos(command.app_name)
-            
+
             if not coords:
-                return {"status": "error", "message": "Hallucination blocked: Could not resolve exact UI coordinates from accessibility tree."}
-            
+                return {
+                    "status": "error",
+                    "message": "Hallucination blocked: Could not resolve exact UI coordinates from accessibility tree.",
+                }
+
             if pyautogui:
                 pyautogui.click(*coords)
-                return {"status": "success", "message": f"Clicked element on {command.app_name}"}
+                return {
+                    "status": "success",
+                    "message": f"Clicked element on {command.app_name}",
+                }
             return {"status": "error", "message": "pyautogui not installed."}
 
         elif command.action == "type_text" and command.text:
             if pyautogui:
                 pyautogui.write(command.text, interval=0.01)
-                return {"status": "success", "message": f"Typed text length: {len(command.text)}"}
+                return {
+                    "status": "success",
+                    "message": f"Typed text length: {len(command.text)}",
+                }
             return {"status": "error", "message": "pyautogui not installed."}
 
         elif command.action == "transcribe_mic":
             # Real transcription requires SpeechRecognition injected correctly
-            return {"status": "success", "message": "Simulated local whisper transcription ready."}
-        
-        return {"status": "error", "message": "Unknown action or missing parameters combined with action."}
+            return {
+                "status": "success",
+                "message": "Simulated local whisper transcription ready.",
+            }
+
+        return {
+            "status": "error",
+            "message": "Unknown action or missing parameters combined with action.",
+        }

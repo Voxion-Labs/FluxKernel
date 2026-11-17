@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-import base64
 import json
 from pathlib import Path
 
-from app.core.persona_engine import AttachmentContext, DataAnalysisResponse, DataArtifact
+from app.core.persona_engine import (
+    AttachmentContext,
+    DataAnalysisResponse,
+    DataArtifact,
+)
 from app.tools.code_executor import execute_code_sync
 from app.tools.file_manager import WORKSPACE_DIR
 
@@ -97,9 +100,7 @@ print(json.dumps({{"artifacts": GENERATED_ARTIFACTS}}))
 
     insights: list[str] = []
     if stdout:
-        insights.extend(
-            line.strip() for line in stdout.splitlines()[:-1] if line.strip()
-        )
+        insights.extend(line.strip() for line in stdout.splitlines()[:-1] if line.strip())
     if not result.get("success"):
         insights.append("Python analysis execution failed. Review stderr for the exact exception.")
 
@@ -110,4 +111,3 @@ print(json.dumps({{"artifacts": GENERATED_ARTIFACTS}}))
         stdout=stdout,
         stderr=stderr,
     )
-

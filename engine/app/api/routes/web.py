@@ -8,16 +8,19 @@ Endpoints:
   POST /api/v1/web/download  — Download a binary file into workspace/
   POST /api/v1/web/api       — Ping an external JSON API
 """
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, field_validator
+
 from typing import Any
 
-from app.tools.web_fetcher import fetch_url, scrape_page, download_file, fetch_api
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from app.tools.web_fetcher import download_file, fetch_api, fetch_url, scrape_page
 
 router = APIRouter(prefix="/web", tags=["web"])
 
 
 # ── Request Models ─────────────────────────────────────────────────────────────
+
 
 class FetchRequest(BaseModel):
     url: str
@@ -40,6 +43,7 @@ class ApiRequest(BaseModel):
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+
 @router.post("/fetch")
 async def web_fetch(request: FetchRequest) -> dict:
     """
@@ -58,7 +62,7 @@ async def web_fetch(request: FetchRequest) -> dict:
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Web fetch failed: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"Web fetch failed: {e!s}")
 
 
 @router.post("/download")
@@ -72,7 +76,7 @@ async def web_download(request: DownloadRequest) -> dict:
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Download failed: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"Download failed: {e!s}")
 
 
 @router.post("/api")
@@ -90,4 +94,4 @@ async def web_api(request: ApiRequest) -> dict:
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"API request failed: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"API request failed: {e!s}")

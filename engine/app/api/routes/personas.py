@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.core.persona_engine import CognitiveMode, MODE_TOOLSETS
+from app.core.persona_engine import MODE_TOOLSETS, CognitiveMode
 from app.core.project_rag import delete_pin, list_pins, pin_workspace_paths
 from app.database.connection import get_db
-from app.database.models import Persona, ProjectPin
+from app.database.models import Persona
 
 router = APIRouter(prefix="/personas", tags=["personas"])
 
@@ -58,15 +56,20 @@ MODE_DESCRIPTIONS = {
 }
 
 
-@router.get("/", response_model=List[PersonaOut])
+@router.get("/", response_model=list[PersonaOut])
 def list_personas(db: Session = Depends(get_db)):
     return db.query(Persona).order_by(Persona.id).all()
 
 
-@router.get("/modes", response_model=List[CognitiveModeOut])
+@router.get("/modes", response_model=list[CognitiveModeOut])
 def list_cognitive_modes():
     modes: list[CognitiveModeOut] = []
-    for mode in (CognitiveMode.PROJECT, CognitiveMode.PLANNER, CognitiveMode.CODER, CognitiveMode.DATA):
+    for mode in (
+        CognitiveMode.PROJECT,
+        CognitiveMode.PLANNER,
+        CognitiveMode.CODER,
+        CognitiveMode.DATA,
+    ):
         modes.append(
             CognitiveModeOut(
                 id=mode.name,
@@ -111,12 +114,12 @@ def delete_persona(persona_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
-@router.get("/project/pins", response_model=List[PinOut])
+@router.get("/project/pins", response_model=list[PinOut])
 def get_project_pins(db: Session = Depends(get_db)):
     return list_pins(db)
 
 
-@router.post("/project/pins", response_model=List[PinOut], status_code=201)
+@router.post("/project/pins", response_model=list[PinOut], status_code=201)
 def create_project_pins(payload: PinRequest, db: Session = Depends(get_db)):
     try:
         return pin_workspace_paths(db, payload.paths, label=payload.label)
@@ -129,4 +132,3 @@ def remove_project_pin(pin_id: int, db: Session = Depends(get_db)):
     deleted = delete_pin(db, pin_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Pinned path not found")
-

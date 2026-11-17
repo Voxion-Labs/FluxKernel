@@ -3,14 +3,17 @@ from __future__ import annotations
 import json
 import math
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 from sqlalchemy.orm import Session
 
 from app.database.models import ProjectDocumentChunk, ProjectPin
-from app.tools.file_manager import WORKSPACE_DIR, SecurityException, _resolve_and_check_path
+from app.tools.file_manager import (
+    WORKSPACE_DIR,
+    _resolve_and_check_path,
+)
 
 _TOKEN_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_./:-]{1,63}")
 _VECTOR_SIZE = 96
@@ -96,7 +99,9 @@ def _relative_workspace_path(path: Path) -> str:
     return path.relative_to(WORKSPACE_DIR).as_posix()
 
 
-def pin_workspace_paths(db: Session, paths: list[str], *, label: str | None = None) -> list[ProjectPin]:
+def pin_workspace_paths(
+    db: Session, paths: list[str], *, label: str | None = None
+) -> list[ProjectPin]:
     pinned: list[ProjectPin] = []
 
     for raw_path in paths:
@@ -190,8 +195,5 @@ def build_context_block(chunks: list[RetrievedChunk]) -> str:
 
     sections = []
     for chunk in chunks:
-        sections.append(
-            f"[{chunk.path} | score={chunk.score:.3f}]\n{chunk.content[:1000]}"
-        )
+        sections.append(f"[{chunk.path} | score={chunk.score:.3f}]\n{chunk.content[:1000]}")
     return "\n\n".join(sections)
-

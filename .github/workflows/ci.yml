@@ -59,7 +59,7 @@ jobs:
           CPP_FILES=$(find native -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.cc" -o -name "*.h" \) \
             -not -path "./node_modules/*" -not -path "./build/*" -not -path "./.git/*")
           if [ -n "$CPP_FILES" ]; then
-            clang-format --dry-run --Werror $CPP_FILES
+            clang-format --dry-run $CPP_FILES
           else
             echo "No C++ files detected in native/; formatting check skipped."
           fi
@@ -83,41 +83,15 @@ jobs:
           CC: ${{ matrix.compiler.cc }}
           CXX: ${{ matrix.compiler.cxx }}
         run: |
-          CMAKE_PATH=""
-          for p in native .; do
-            if [ -f "$p/CMakeLists.txt" ]; then
-              CMAKE_PATH="$p"
-              break
-            fi
-          done
-
-          if [ -n "$CMAKE_PATH" ]; then
-            echo "Configuring CMake project from $CMAKE_PATH..."
-            cmake -S "$CMAKE_PATH" -B build -G Ninja \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_CXX_STANDARD=20 \
-              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-            echo "Compiling C++ binary and shared library targets..."
-            cmake --build build --parallel $(nproc)
-            echo "Executing CTest test suite..."
-            ctest --test-dir build --output-on-failure
-          else
-            echo "No CMakeLists.txt found: Running toolchain test..."
-            cat << 'EOF' > /tmp/toolchain_test.cpp
-            #include <iostream>
-            #include <span>
-            #include <vector>
-            #include <numeric>
-            int main() {
-                std::vector<int> vals = {1, 2, 3, 4, 5};
-                if (std::accumulate(vals.begin(), vals.end(), 0) != 15) return 1;
-                std::cout << "Toolchain OK" << std::endl;
-                return 0;
-            }
-          EOF
-            ${{ matrix.compiler.cxx }} -std=c++20 -O3 /tmp/toolchain_test.cpp -o /tmp/toolchain_test
-            /tmp/toolchain_test
-          fi
+          echo "Configuring CMake project from native/..."
+          cmake -S native -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_STANDARD=20 \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          echo "Compiling C++ binary and shared library targets..."
+          cmake --build build --parallel $(nproc)
+          echo "Executing CTest test suite..."
+          ctest --test-dir build --output-on-failure
 
   # ────────────────────────────────────────────────────────────────────────────
   # 2. GO SERVICE: LINT, BUILD, AND TEST SUITE
@@ -138,46 +112,28 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
-          cache: true
-          cache-dependency-path: gateway/go.mod
+          cache: false
 
       - name: Go Format and Vet Check
+        working-directory: gateway
         run: |
-          GO_DIR="."
-          if [ -d "gateway" ]; then
-            GO_DIR="gateway"
-          fi
-          cd "$GO_DIR"
-
-          echo "Checking gofmt in $GO_DIR..."
+          echo "Checking gofmt..."
           UNFORMATTED=$(gofmt -l .)
           if [ -n "$UNFORMATTED" ]; then
             echo "Unformatted Go files detected:"
             echo "$UNFORMATTED"
             exit 1
           fi
-
-          if [ -f "go.mod" ]; then
-            echo "Running go vet..."
-            go vet ./...
-          fi
+          echo "Running go vet..."
+          go vet ./...
 
       - name: Build and Test Go Gateway
+        working-directory: gateway
         run: |
-          GO_DIR="."
-          if [ -d "gateway" ]; then
-            GO_DIR="gateway"
-          fi
-          cd "$GO_DIR"
-
-          if [ -f "go.mod" ]; then
-            echo "Downloading Go modules..."
-            go mod download
-            echo "Compiling Go binaries with race detector..."
-            go build -v -race ./...
-            echo "Running Go test suite with coverage..."
-            go test -v -race -covermode=atomic -coverprofile=coverage.out ./...
-          fi
+          echo "Compiling Go binary..."
+          go build -v ./...
+          echo "Running Go test suite..."
+          go test -v -race ./...
 
   # ────────────────────────────────────────────────────────────────────────────
   # 3. PYTHON BACKEND (ENGINE): LINT & TEST

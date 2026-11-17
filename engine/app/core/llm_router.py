@@ -46,7 +46,7 @@ def _get_vram_free_gb() -> float | None:
 
 
 def assess_system_load() -> dict[str, Any]:
-    ram_available_gb = psutil.virtual_memory().available / (1024 ** 3)
+    ram_available_gb = psutil.virtual_memory().available / (1024**3)
     vram_gb = _get_vram_free_gb()
     return {
         "ram_available_gb": ram_available_gb,
@@ -171,12 +171,12 @@ async def _call_anthropic(
     message = client.messages.create(
         model=model_name,
         max_tokens=4096,
-        system=system_prompt if response_model is None else f"{system_prompt}\n\n{_json_guidance(response_model)}",
+        system=system_prompt
+        if response_model is None
+        else f"{system_prompt}\n\n{_json_guidance(response_model)}",
         messages=[{"role": "user", "content": prompt}],
     )
-    raw = "".join(
-        block.text for block in message.content if getattr(block, "type", "") == "text"
-    )
+    raw = "".join(block.text for block in message.content if getattr(block, "type", "") == "text")
     return _validate_structured_output(raw, response_model)
 
 
@@ -230,7 +230,10 @@ async def route_llm(
             print(f"[Router] Local route failed: {exc}", file=sys.stderr)
 
     handoff_reason = "; ".join(reasons) if reasons else "cloud default"
-    print(f"[Router] -> CLOUD | tokens={token_count} | reason={handoff_reason}", file=sys.stderr)
+    print(
+        f"[Router] -> CLOUD | tokens={token_count} | reason={handoff_reason}",
+        file=sys.stderr,
+    )
 
     if getattr(settings, "GEMINI_API_KEY", ""):
         try:
@@ -242,7 +245,11 @@ async def route_llm(
     if getattr(settings, "ANTHROPIC_API_KEY", ""):
         try:
             content = await _call_anthropic(prompt, system_prompt, response_model)
-            return {"content": content, "routed_to": "anthropic", "reason": handoff_reason}
+            return {
+                "content": content,
+                "routed_to": "anthropic",
+                "reason": handoff_reason,
+            }
         except Exception as exc:
             print(f"[Router] Anthropic failed: {exc}", file=sys.stderr)
 
@@ -252,4 +259,3 @@ async def route_llm(
         fallback = "System Error: All llm routes failed."
 
     return {"content": fallback, "routed_to": "fallback", "reason": handoff_reason}
-

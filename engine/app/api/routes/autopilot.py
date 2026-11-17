@@ -7,16 +7,16 @@ Endpoints:
   GET  /api/v1/autopilot/{loop_id}/stream    — SSE stream of loop events
   GET  /api/v1/autopilot/{loop_id}/status    — Instant state snapshot
 """
+
 import asyncio
 import json
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
-from app.core.agentic_loop import create_loop, abort_loop, get_loop, run_agentic_loop
+from app.core.agentic_loop import abort_loop, create_loop, get_loop, run_agentic_loop
 
 router = APIRouter(prefix="/autopilot", tags=["autopilot"])
 
@@ -24,6 +24,7 @@ _POLL_INTERVAL = 0.2  # SSE flush cadence in seconds
 
 
 # ── Request / Response Models ─────────────────────────────────────────────────
+
 
 class StartLoopRequest(BaseModel):
     prompt: str
@@ -38,6 +39,7 @@ class StartLoopResponse(BaseModel):
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+
 
 @router.post("/start", response_model=StartLoopResponse)
 async def start_loop(request: StartLoopRequest) -> StartLoopResponse:
@@ -90,12 +92,12 @@ async def get_status(loop_id: str) -> dict:
     if not state:
         raise HTTPException(status_code=404, detail=f"Loop '{loop_id}' not found.")
     return {
-        "loop_id":       state.loop_id,
-        "status":        state.status,
-        "iteration":     state.iteration,
+        "loop_id": state.loop_id,
+        "status": state.status,
+        "iteration": state.iteration,
         "max_iterations": state.max_iterations,
         "files_written": len(state.files_written),
-        "abort_flag":    state.abort_flag,
+        "abort_flag": state.abort_flag,
     }
 
 
@@ -117,7 +119,7 @@ async def _sse_event_generator(loop_id: str) -> AsyncGenerator[str, None]:
             while not state.event_queue.empty():
                 event = await asyncio.wait_for(state.event_queue.get(), timeout=0.1)
                 yield f"data: {json.dumps(event)}\n\n"
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
 
         if state.status in terminal_states and state.event_queue.empty():
@@ -139,7 +141,7 @@ async def stream_loop(loop_id: str):
         _sse_event_generator(loop_id),
         media_type="text/event-stream",
         headers={
-            "Cache-Control":    "no-cache",
+            "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
         },
     )

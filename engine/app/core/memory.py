@@ -2,14 +2,13 @@
 Memory module — vector search over past messages using in-process TF-IDF.
 Swap the retriever for pgvector + sentence-transformers when ready for production.
 """
-from typing import List
 
 
 def _tokenize(text: str) -> set:
     return set(text.lower().split())
 
 
-def retrieve_relevant_context(query: str, history: List[dict], top_k: int = 3) -> List[str]:
+def retrieve_relevant_context(query: str, history: list[dict], top_k: int = 3) -> list[str]:
     """
     Simple keyword-overlap retriever over the in-memory message history.
     Returns the `top_k` most relevant past messages as context strings.
@@ -23,7 +22,7 @@ def retrieve_relevant_context(query: str, history: List[dict], top_k: int = 3) -
         return []
 
     query_tokens = _tokenize(query)
-    scored: List[tuple[float, str]] = []
+    scored: list[tuple[float, str]] = []
 
     for msg in history:
         content = msg.get("content", "")
@@ -38,7 +37,7 @@ def retrieve_relevant_context(query: str, history: List[dict], top_k: int = 3) -
     return [text for _, text in scored[:top_k] if _ > 0]
 
 
-def build_context_block(query: str, history: List[dict]) -> str:
+def build_context_block(query: str, history: list[dict]) -> str:
     """Return a formatted context string to prepend to the LLM prompt."""
     snippets = retrieve_relevant_context(query, history)
     if not snippets:

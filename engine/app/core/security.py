@@ -2,8 +2,10 @@
 Security module — API key verification and request origin validation.
 Extend with JWT / OAuth2 when deploying to production.
 """
+
 import os
 import secrets
+
 from fastapi import HTTPException, Security, status
 from fastapi.security import APIKeyHeader
 

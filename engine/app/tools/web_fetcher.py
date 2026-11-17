@@ -8,15 +8,15 @@ Security constraints (enforced on every call):
   - User-Agent is set to FluxKernel/1.0 to be transparent
   - Redirects are followed but limited to 5 hops
 """
+
 import re
-from pathlib import Path
-from urllib.parse import urlparse
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 from bs4 import BeautifulSoup
 
-from app.tools.file_manager import WORKSPACE_DIR, _resolve_and_check_path
+from app.tools.file_manager import _resolve_and_check_path
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 MAX_DOWNLOAD_BYTES = 100 * 1024 * 1024  # 100 MB
@@ -26,13 +26,12 @@ MAX_REDIRECTS = 5
 
 # ── Security Helpers ──────────────────────────────────────────────────────────
 
+
 def _validate_url(url: str) -> None:
     """Raise ValueError if the URL is not an acceptable https target."""
     parsed = urlparse(url)
     if parsed.scheme != "https":
-        raise ValueError(
-            f"Only https:// URLs are permitted. Got scheme: '{parsed.scheme}'"
-        )
+        raise ValueError(f"Only https:// URLs are permitted. Got scheme: '{parsed.scheme}'")
     if not parsed.netloc:
         raise ValueError(f"URL has no host: '{url}'")
 
@@ -47,6 +46,7 @@ def _build_client() -> httpx.Client:
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
 
 def fetch_url(url: str, save_as: str | None = None) -> dict[str, Any]:
     """
@@ -144,20 +144,19 @@ def download_file(url: str, filename: str) -> dict[str, Any]:
     target.parent.mkdir(parents=True, exist_ok=True)
 
     downloaded = 0
-    with _build_client() as client:
-        with client.stream("GET", url) as response:
-            response.raise_for_status()
-            with open(target, "wb") as out_file:
-                for chunk in response.iter_bytes(chunk_size=65_536):
-                    downloaded += len(chunk)
-                    if downloaded > MAX_DOWNLOAD_BYTES:
-                        out_file.close()
-                        target.unlink(missing_ok=True)
-                        raise ValueError(
-                            f"Download aborted: exceeded 100 MB safety limit "
-                            f"({downloaded / 1_048_576:.1f} MB received)."
-                        )
-                    out_file.write(chunk)
+    with _build_client() as client, client.stream("GET", url) as response:
+        response.raise_for_status()
+        with open(target, "wb") as out_file:
+            for chunk in response.iter_bytes(chunk_size=65_536):
+                downloaded += len(chunk)
+                if downloaded > MAX_DOWNLOAD_BYTES:
+                    out_file.close()
+                    target.unlink(missing_ok=True)
+                    raise ValueError(
+                        f"Download aborted: exceeded 100 MB safety limit "
+                        f"({downloaded / 1_048_576:.1f} MB received)."
+                    )
+                out_file.write(chunk)
 
     return {
         "url": url,
@@ -206,6 +205,7 @@ def fetch_api(
     saved_to: str | None = None
     if save_as:
         import json as _json
+
         target = _resolve_and_check_path(save_as)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(_json.dumps(data, indent=2), encoding="utf-8")

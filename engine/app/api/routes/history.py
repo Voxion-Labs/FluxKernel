@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from typing import List
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from app.database.connection import get_db
-from app.database.models import ChatSession, Message
+from app.database.models import ChatSession
 
 router = APIRouter(prefix="/history", tags=["history"])
 
@@ -19,12 +19,12 @@ class MessageOut(BaseModel):
 class SessionOut(BaseModel):
     id: int
     title: str
-    messages: List[MessageOut] = []
+    messages: list[MessageOut] = []
 
     model_config = {"from_attributes": True}
 
 
-@router.get("/sessions", response_model=List[SessionOut])
+@router.get("/sessions", response_model=list[SessionOut])
 def list_sessions(db: Session = Depends(get_db)):
     """Return all chat sessions ordered by most recent."""
     sessions = db.query(ChatSession).order_by(ChatSession.id.desc()).all()

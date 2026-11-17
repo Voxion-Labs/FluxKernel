@@ -93,7 +93,7 @@ func (h *Handler) handleReadyz(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"ready":          true,
+		"ready":           true,
 		"upstream_engine": h.engineTarget.String(),
 	})
 }
