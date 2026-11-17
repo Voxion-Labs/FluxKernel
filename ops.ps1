@@ -79,6 +79,7 @@ function Invoke-Test() {
     if (Get-Command python -ErrorAction SilentlyContinue) {
         python engine/tests/test_native_bridge.py
         python engine/tests/test_code_executor.py
+        python engine/tests/test_e2e_triumvirate.py
         Write-Success "Python verification, code executor, and native bridge passed!"
     }
 }

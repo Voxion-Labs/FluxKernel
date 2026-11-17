@@ -53,7 +53,7 @@ services:
   # ── FastAPI Engine (Core Python Brain) ────────────────────────────────────────
   api:
     build:
-      context: ./engine
+      context: .
       dockerfile: Dockerfile
     container_name: fluxkernel_api
     restart: unless-stopped
@@ -82,7 +82,7 @@ services:
   # ── Celery Worker (Feature 1: Background Task Execution) ──────────────────────
   worker:
     build:
-      context: ./engine
+      context: .
       dockerfile: Dockerfile
     container_name: fluxkernel_worker
     restart: unless-stopped

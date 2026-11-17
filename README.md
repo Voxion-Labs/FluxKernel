@@ -9,10 +9,12 @@
 
 <div align="center">
 
-![Architecture](https://img.shields.io/badge/Architecture-Autonomous%20Agentic%20Loop-39ff8a?style=for-the-badge)
+![Architecture](https://img.shields.io/badge/Architecture-Autonomous%20Tri--Stack-39ff8a?style=for-the-badge)
+![Gateway](https://img.shields.io/badge/Gateway-Go%201.23%20%7C%20High--Concurrency-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Accelerator](https://img.shields.io/badge/Accelerator-C%2B%2B20%20%7C%20Native%20Bare--Metal-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)
 ![Kernel](https://img.shields.io/badge/Kernel-Python%20%7C%20FastAPI-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Interface](https://img.shields.io/badge/Interface-Next.js%20%7C%20React-000000?style=for-the-badge&logo=next.js&logoColor=white)
-![Security](https://img.shields.io/badge/Security-Strict%20Sandbox-ffcc00?style=for-the-badge)
+![Backend TS](https://img.shields.io/badge/Backend%20TS-0%25%20Independent-brightgreen?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Proprietary-red.svg?style=for-the-badge)
 
 </div>
@@ -23,179 +25,163 @@
 
 **FluxKernel** is a proprietary, full-stack autonomous AI engineering environment and cognitive operating system engineered exclusively by Voxion Labs. 
 
-Standard large language model (LLM) implementations function as stateless, localized chat wrappers requiring constant human orchestration and context injection. FluxKernel abandons this paradigm. It operates as a stateful, agentic operating system capable of executing complex software architecture tasks independently. By bridging a highly deterministic Python execution kernel with a low-latency Next.js command matrix, the system achieves physical agency over its host environment. 
+Standard large language model (LLM) implementations function as stateless, localized chat wrappers requiring constant human orchestration and context injection. FluxKernel abandons this paradigm. It operates as a stateful, agentic operating system capable of executing complex software architecture tasks independently.
 
-FluxKernel is capable of direct operating system control, arbitrary script compilation, dynamic software package management, and long-term memory retrieval via Vectorized Retrieval-Augmented Generation (RAG).
+The system is architected as a **high-concurrency tri-stack backend** featuring **0% TypeScript in the backend**:
+1. **High-Performance Go Gateway (`gateway/`)**: Handles edge networking, SSE streaming multiplexing, webhook ring buffering, and concurrent file-tree operations on Port `8080`.
+2. **C++20 Native Accelerator (`native/`)**: Delivers bare-metal SIMD vector dot products, high-speed memory difference scoring, and canonical sandbox filesystem traversal barriers via a C ABI shared library (`libflux_core`).
+3. **Python Cognitive Kernel (`engine/`)**: Serves as the central cognitive brain on Port `8000`, orchestrating the autonomous reasoning cycle, LLM tool dispatch, AST codebase mutations, and multi-language execution (Python, native Go, and C++20).
+4. **Command Matrix Interface (`frontend/`)**: A pure client-side Next.js/React command matrix on Port `3000` dedicated purely to UI presentation, Monaco editing, and human oversight.
 
 ---
 
 ## 2. Infrastructure Topology
 
-FluxKernel operates on a strictly bifurcated monorepo architecture to guarantee execution stability, fault isolation, and cognitive scaling. The environment is partitioned into the **Kernel Engine** (Cognitive Backend) and the **Frontend** (Command Matrix), coordinated via localized Docker containers.
+FluxKernel operates on a strictly partitioned multi-language repository designed for zero-coupling, maximum throughput, and uncompromising operational security.
 
 ```text
 FluxKernel/
 ├── .github/
-│   ├── deploy-frontend.yml         # CI/CD pipelines for Next.js surface
-│   └── deploy-kernel.yml           # CI/CD pipelines for Python engine
+│   └── workflows/
+│       ├── ci.yml                  # Enterprise Multi-Stage CI/CD (Go, C++, Python)
+│       └── bot-json-writer.yml     # Autonomous Bot Activity Ledger (voxion-bot)
 ├── assets/
 │   └── architecture/
 │       ├── database-schema.md      # Relational and vector schemas
 │       ├── system-design.drawio    # Top-level execution topology
 │       └── tool-flow-diagram.png   # Tool routing execution flow
-├── frontend/                       # Next.js Command Matrix
-│   ├── src/app/api/                # Localized proxy routes
+├── gateway/                        # Go 1.23 High-Performance Gateway (:8080)
+│   ├── cmd/server/main.go          # Gateway entrypoint & reverse proxy
+│   ├── internal/handlers/          # Chat SSE, Autopilot, Tasks, Webhooks, Workspace
+│   ├── internal/proxy/             # Upstream router & CORS middleware
+│   ├── Dockerfile                  # Distroless minimal attack-surface image
+│   └── go.mod
+├── native/                         # C++20 Bare-Metal Native Accelerator
+│   ├── include/flux/flux_core.h    # Exported C ABI declarations
+│   ├── src/flux_core.cpp           # Vector dot, diff distance, path barriers
+│   ├── tests/test_flux_core.cpp    # Native C++ test harness
+│   └── CMakeLists.txt              # Modern CMake build configuration
+├── engine/                         # Python Cognitive Brain (:8000)
+│   ├── app/core/                   # Agentic loop, LLM router, native C ABI bridge
+│   ├── app/tools/                  # Physical execution arsenal (Go, C++, Python)
+│   ├── app/api/                    # FastAPI routes & telemetry endpoints
+│   ├── tests/                      # Unit & integration verification suites
+│   ├── requirements.txt            # Python dependencies (Celery, FastAPI, etc.)
+│   └── pyproject.toml              # Ruff linter and formatter configuration
+├── frontend/                       # Pure Client Next.js Command Matrix (:3000)
+│   ├── src/components/             # Monaco editor, diff viewer, chat surface
+│   ├── src/store/                  # Zustand decentralized client stores
+│   ├── next.config.js              # Reverse proxy routing to Go Gateway (:8080)
 │   └── package.json
-├── engine/                         # Python Cognitive Backend
-│   ├── app/core/                   # Agentic logic, RAG, and Security
-│   ├── app/tools/                  # Physical execution arsenal
-│   └── requirements.txt        
-└── docker-compose.yml              # Local container orchestration
+├── ops.ps1 / ops.sh                # Operational Workflow CLI (sync, push, lint, test)
+├── Dockerfile                      # Multi-stage production container build
+└── docker-compose.yml              # Local multi-service container orchestration
 ```
 
 ---
 
-## 3. The Kernel Engine (Cognitive Backend)
+## 3. Architecture Deep-Dive
 
-Located entirely within the `/engine` directory, this Python-based environment handles all LLM routing, contextual memory processing, and dangerous physical executions. It exposes a strictly typed FastAPI surface for the frontend to consume.
+### 3.1 Go High-Performance Gateway (`gateway/`)
+Operating on Port `:8080`, the Go Gateway terminates external traffic, manages non-blocking HTTP Server-Sent Events (SSE), and isolates filesystem operations:
+*   **SSE Stream Multiplexing**: Duplex event streams for autonomous loops (`/api/autopilot`) and long-running background tasks (`/api/tasks/`) bypass Python thread bottlenecks.
+*   **Thread-Safe Event Ledger**: In-memory ring buffer holding recent webhook events with concurrent mutex synchronization (`/api/webhooks`).
+*   **Parallel Directory Traversal**: Fast multi-threaded workspace tree scanner (`/api/workspace/tree`) and traversal-protected file writer (`/api/workspace/write`).
 
-### 3.1 Core Cognitive Modules (`app/core/`)
-*   **`agentic_loop.py`**: The absolute nucleus of FluxKernel. It orchestrates continuous, multi-step autonomous reasoning cycles. It evaluates task completion probabilities, selects appropriate tools, handles error recovery, and determines execution termination without human intervention.
-*   **`llm_router.py`**: A deterministic evaluation layer that intercepts system prompts and routes them to optimal local or remote LLM endpoints based on task complexity, token constraints, and latency requirements.
-*   **`project_rag.py` & `memory.py`**: The persistent contextual awareness layer. It maintains vectorized embeddings of the operator's entire workspace. This ensures the agentic loop semantically understands the codebase hierarchy before executing targeted mutations.
-*   **`security.py`**: Hardened execution constraints preventing the loop from initiating recursive token-burn cycles or accessing unauthorized host-level directories.
-*   **`persona_engine.py`**: A dynamic system-prompt injection module allowing the kernel to seamlessly shift between operational directives (e.g., Ruthless Refactoring, UI Polishing, Security Auditing).
+### 3.2 C++20 Native Accelerator (`native/`)
+Compiled into `libflux_core.so` (Linux) / `flux_core.dll` (Windows), this module delivers sub-millisecond execution for performance-critical kernels:
+*   **Vector Dot Product (`flux_fast_vector_dot`)**: High-speed floating-point vector products for RAG embedding retrieval and cosine similarity.
+*   **Memory Difference Distance (`flux_diff_distance`)**: Rapid character- and block-level diff calculation for real-time code mutation tracking.
+*   **Canonical Path Barrier (`flux_sandbox_verify_path`)**: Realpath normalization ensuring all agent-generated filesystem operations remain strictly bounded within the authorized workspace.
+*   **Transparent ABI Bridge**: Python integrates via `ctypes` in `engine/app/core/native_bridge.py` with zero overhead and automatic fallback to pure Python if the binary is uncompiled.
 
-### 3.2 Execution Arsenal (`app/tools/`)
-The cognitive loop relies on a strictly defined arsenal of execution tools, granting the AI physical agency over the host system.
-*   **`code_executor.py`**: Compiles and executes arbitrary scripts in an isolated subprocess to validate logic before committing changes to the primary workspace.
-*   **`os_controller.py`**: Provides direct interface capabilities with the host operating system for directory traversal, process management, and shell command execution.
-*   **`file_manager.py`**: Enables high-precision read/write operations, AST parsing, and codebase mutations based on RAG context.
-*   **`software_manager.py`**: Grants the kernel autonomy over dependency installation, package updates, and environment configuration.
-*   **`web_fetcher.py`**: Facilitates real-time documentation ingestion, API scraping, and external knowledge integration.
-*   **`voice_engine.py` & `image_gen.py`**: Multimodal generation capabilities integrated directly into the operator's command workflow.
+### 3.3 Python Cognitive Kernel Engine (`engine/`)
+Operating on Port `:8000`, Python remains the central cognitive brain:
+*   **`agentic_loop.py`**: The autonomous nucleus executing planning, code generation, verification, and automated bug-fixing cycles.
+*   **`code_executor.py`**: Multi-language execution sandbox supporting Python, native Go, and modern C++20. All JavaScript/TypeScript runners have been purged.
+*   **`llm_router.py`**: Dynamic model routing evaluating prompt complexity, context sizes, and cost/latency constraints.
+*   **`file_manager.py` & `os_controller.py`**: Workspace modification tools gated by native path validation.
 
-### 3.3 Backend Telemetry Snippet
-The FastAPI engine initializes via `app/main.py`, binding the core loop to WebSocket streams for real-time telemetry:
+### 3.4 Command Matrix (`frontend/`)
+Located within `/frontend`, the Next.js/React interface acts as a zero-backend client:
+*   All previous Next.js backend API routes (`src/app/api/`) have been eradicated.
+*   Directs all API requests to the Go Gateway at `http://localhost:8080`.
+*   Provides real-time Monaco code editing, batch diff approvals, and live telemetry streaming.
 
-```python
-# engine/app/main.py (Architecture Abstraction)
-from fastapi import FastAPI, WebSocket
-from app.core.agentic_loop import initialize_autonomous_loop
+---
 
-app = FastAPI(title="FluxKernel Cognitive Engine")
+## 4. Operational Workflow CLI (`ops.ps1` / `ops.sh`)
 
-@app.websocket("/ws/telemetry")
-async def telemetry_stream(websocket: WebSocket):
-    await websocket.accept()
-    # Continuous stream of autonomous decision trees to the command matrix
-    await initialize_autonomous_loop(telemetry_socket=websocket)
+FluxKernel provides cross-platform operational scripts to automate formatting, testing, rebasing, and pushing without requiring global software installations:
+
+```bash
+# Windows (PowerShell)
+.\ops.ps1 sync                  # Fetch origin/main and rebase cleanly
+.\ops.ps1 push "feat: message"  # Lint, test, commit, auto-rebase, and push
+.\ops.ps1 lint                  # Format Go (gofmt) and Python (ruff)
+.\ops.ps1 test                  # Execute Go, C++, and Python test suites
+.\ops.ps1 clean                 # Clean build artifacts and __pycache__
+
+# Linux / macOS (Bash)
+./ops.sh sync
+./ops.sh push "feat: message"
+./ops.sh lint
+./ops.sh test
+./ops.sh clean
 ```
 
 ---
 
-## 4. The Command Matrix (Frontend Interface)
+## 5. Deployment Protocol
 
-Located within the `/frontend` directory, the Next.js/React interface acts as a high-fidelity, low-latency control deck for the human operator. It is completely stateless regarding AI processing, acting solely as a visualizer and manual override trigger.
-
-### 4.1 Workspace Visualization & Synchronization
-*   **`components/workspace/FileExplorer.tsx`**: Real-time virtual representation of the host directory, synchronizing live as the kernel manipulates files.
-*   **`components/workspace/BatchDiffViewer.tsx`**: High-precision graphical interfaces for reviewing kernel-generated codebase mutations before authorizing a final merge.
-
-### 4.2 Code Integration & Telemetry
-*   **`components/chat/MonacoEditor.tsx`**: Deep browser-level integration of the Monaco execution environment, providing native syntax highlighting, algorithmic validation, and inline code interaction while the agent operates.
-*   **`hooks/useTaskStream.ts`**: The core telemetry pipeline monitoring continuous autonomous execution.
-*   **`components/AutoPilotToggle.tsx`**: The physical trigger that shifts the kernel from synchronous chat mode into the asynchronous, continuous `agentic_loop.py`.
-
-### 4.3 Decentralized State Management
-To prevent UI blocking during heavy kernel processing, the frontend relies on strict client-side state handling via Zustand (`src/store/`):
-*   **`useFluxStore.ts`**: Global operational state, tracking active processes and socket connections.
-*   **`usePersonaStore.ts`**: Synchronizes the frontend UI with the active cognitive framework of the backend.
-
----
-
-## 5. Deployment & Execution Protocol
-
-FluxKernel requires a strict initialization sequence. The Python kernel MUST be fully operational, and the localized Docker networks must be established before the Next.js interface attempts initialization.
-
-### Step 1: Environment Configuration
-The kernel requires dedicated paths and API keys to establish its vectorized memory and tool routing.
+### Local Multi-Container Stack (Docker Compose)
+Boot the complete isolated environment (PostgreSQL, Redis, Go Gateway, Python Engine, Celery Worker):
 
 ```bash
-cd engine
-cp .env.example .env
+docker-compose up --build -d
 ```
 
-*Example `engine/.env` Configuration:*
-```env
-APP_ENV=production
-# Vector Database & Memory
-POSTGRES_URL=postgresql://flux:flux@localhost:5432/flux_memory
-REDIS_URL=redis://localhost:6379/0
-# Cognitive Routing
-OPENAI_API_KEY=sk_...
-ANTHROPIC_API_KEY=sk_...
-# Sandbox Parameters
-WORKSPACE_ROOT=/absolute/path/to/isolated/workspace
-MAX_AUTONOMOUS_ITERATIONS=50
-```
+### Manual Host Ingress
 
-### Step 2: Infrastructure Initialization
-FluxKernel relies on Docker for process isolation and database hosting. The `docker-compose.yml` at the repository root establishes the Redis queues and PostgreSQL vector storage.
+1. **Start Go Gateway (`:8080`)**:
+   ```bash
+   cd gateway
+   go run ./cmd/server
+   ```
 
-```bash
-docker-compose up -d
-```
+2. **Start Python Kernel Engine (`:8000`)**:
+   ```bash
+   cd engine
+   python -m venv venv
+   source venv/bin/activate  # or .\venv\Scripts\Activate.ps1 on Windows
+   pip install -r requirements.txt
+   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+   ```
 
-### Step 3: Kernel Engine Ingress
-Boot the FastAPI application to establish the cognitive backend and expose the telemetry websockets on Port 8000.
-
-```bash
-cd engine
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
-```
-
-### Step 4: Command Matrix Ingress
-Boot the Next.js operational interface on Port 3000 to bind with the Kernel Engine.
-
-```bash
-cd ../frontend
-npm install
-npm run dev
-```
+3. **Start Next.js Command Matrix (`:3000`)**:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
 ---
 
 ## 6. Continuous Integration (CI/CD)
 
-FluxKernel utilizes strictly isolated deployment pipelines via GitHub Actions, located in `.github/`:
-*   `deploy-kernel.yml`: Validates code execution logic, checks Python AST, and deploys the backend to the designated remote environment defined in `render.yaml`.
-*   `deploy-frontend.yml`: Executes static analysis via `eslint.config.mjs`, validates TypeScript definitions (`tsconfig.json`), and deploys the Next.js interface per `vercel.json` directives.
+The GitHub Actions pipeline ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) validates every push across multiple matrix environments:
+*   **Go Matrix**: Validates `gofmt`, `go vet`, compilation, and race-detector test suite on Go 1.22 and Go 1.23.
+*   **C++ Matrix**: Configures CMake and compiles with GCC-13 and Clang-17 under `-std=c++20`, running CTest.
+*   **Python Matrix**: Lints and formats with Ruff, installs dependencies, and runs `pytest` across all test suites.
+*   **Docker Multi-Stage Build**: Compiles the unified container image verifying end-to-end integration.
 
 ---
 
-## 7. Contribution Protocols
-
-Due to the nature of FluxKernel's host-level agency (`os_controller.py`, `code_executor.py`), operational security (OpSec) is paramount. We do not accept unverified tool integrations, non-deterministic loop modifications, or unauthorized state mutations.
-
-All developers must adhere to the strict Sandbox Isolation guidelines. 
-
-**Read the full guidelines before submitting a Pull Request:**  
-👉 **[View Operational & Contribution Protocols](CONTRIBUTING.md)**
-
----
-
-## 8. License Directives
+## 7. License Directives
 
 This repository, its underlying autonomous logic, its agentic loop, and its architectural blueprints are classified proprietary intellectual property.
 
-FluxKernel operates under the **Voxion Labs Proprietary Research License (VL-PRL)**. Open-source usage, commercial exploitation, reverse engineering, unauthorized public hosting, or distribution of the kernel engine or interface is strictly prohibited.
-
-**Read the full proprietary license terms:**  
- **[View Voxion Labs Proprietary Research License (VL-PRL)](LICENSE)**
+FluxKernel operates under the **Voxion Labs Proprietary Research License (VL-PRL)**. Open-source usage, commercial exploitation, reverse engineering, unauthorized public hosting, or distribution is strictly prohibited.
 
 ---
 
@@ -208,5 +194,5 @@ FluxKernel operates under the **Voxion Labs Proprietary Research License (VL-PRL
 ---
 <div align="center">
   (c) 2026 Voxion Labs & Rudranarayan Jena<br>
-  <strong>Voxion Labs</strong> · Autonomous Engineering · Agentic AI · FastAPI · Next.js
+  <strong>Voxion Labs</strong> · Autonomous Engineering · Agentic AI · Go · C++20 · Python · Next.js
 </div>
