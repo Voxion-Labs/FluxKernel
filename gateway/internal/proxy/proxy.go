@@ -99,8 +99,10 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/readyz", h.handleReadyz)
 	mux.HandleFunc("/version", h.handleVersion)
 
-	// Sovereign Embedded Web UI & Static Assets (Zero Node/npm)
+	// Sovereign Embedded Web UI & Pure SSR Actions (Zero JS)
 	mux.Handle("/dashboard", h.uiHandler)
+	mux.HandleFunc("/dashboard/dispatch", h.uiHandler.HandleDispatch)
+	mux.HandleFunc("/dashboard/rollback", h.uiHandler.HandleRollback)
 	mux.Handle("/static/", h.uiHandler.ServeStatic())
 
 	// High-Performance Services (replacing TypeScript Next.js API routes)
