@@ -12,16 +12,20 @@ import (
 
 	"github.com/Voxion-Labs/FluxKernel/gateway/internal/config"
 	"github.com/Voxion-Labs/FluxKernel/gateway/internal/handlers"
+	"github.com/Voxion-Labs/FluxKernel/gateway/internal/ui"
 )
 
 // GatewayVersion is the current build version of the Go Gateway.
-const GatewayVersion = "0.2.0-phase2"
+const GatewayVersion = "0.4.0-phase2"
 
-// Handler orchestrates routing and reverse proxying to the Python core engine.
+// Handler orchestrates routing, UI serving, and reverse proxying to the Python core engine.
 type Handler struct {
 	cfg          *config.Config
 	reverseProxy *httputil.ReverseProxy
 	engineTarget *url.URL
+
+	// Sovereign Embedded Web UI
+	uiHandler *ui.UIHandler
 
 	// Specialized Handlers replacing TS routes
 	chatHandler      *handlers.ChatHandler
@@ -32,7 +36,7 @@ type Handler struct {
 	workspaceHandler *handlers.WorkspaceHandler
 }
 
-// NewHandler initializes a new Gateway Handler with specialized route handlers.
+// NewHandler initializes a new Gateway Handler with specialized route handlers and embedded UI.
 func NewHandler(cfg *config.Config) (*Handler, error) {
 	target, err := url.Parse(cfg.EngineURL)
 	if err != nil {
@@ -69,10 +73,16 @@ func NewHandler(cfg *config.Config) (*Handler, error) {
 
 	client := &http.Client{}
 
+	uiH, err := ui.NewUIHandler(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize embedded UI handler: %w", err)
+	}
+
 	return &Handler{
 		cfg:              cfg,
 		reverseProxy:     rp,
 		engineTarget:     target,
+		uiHandler:        uiH,
 		chatHandler:      handlers.NewChatHandler(cfg, client),
 		autopilotHandler: handlers.NewAutopilotHandler(cfg, client),
 		tasksHandler:     handlers.NewTasksHandler(cfg, client),
@@ -82,12 +92,16 @@ func NewHandler(cfg *config.Config) (*Handler, error) {
 	}, nil
 }
 
-// RegisterRoutes registers gateway endpoints, native services, and upstream proxy handlers.
+// RegisterRoutes registers gateway endpoints, native services, UI dashboard, and upstream proxy handlers.
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Telemetry & Health probes
 	mux.HandleFunc("/healthz", h.handleHealthz)
 	mux.HandleFunc("/readyz", h.handleReadyz)
 	mux.HandleFunc("/version", h.handleVersion)
+
+	// Sovereign Embedded Web UI & Static Assets (Zero Node/npm)
+	mux.Handle("/dashboard", h.uiHandler)
+	mux.Handle("/static/", h.uiHandler.ServeStatic())
 
 	// High-Performance Services (replacing TypeScript Next.js API routes)
 	mux.Handle("/api/chat", h.chatHandler)
@@ -148,12 +162,20 @@ func (h *Handler) handleRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If browser request expecting HTML, render the sovereign dashboard
+	if ui.IsBrowserRequest(r) {
+		h.uiHandler.ServeHTTP(w, r)
+		return
+	}
+
+	// Otherwise return JSON API discovery telemetry
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":      "online",
 		"service":     "FluxKernel High-Performance Gateway (Go)",
 		"version":     GatewayVersion,
+		"dashboard":   "/dashboard",
 		"upstream":    h.engineTarget.String(),
 		"environment": h.cfg.Environment,
 	})

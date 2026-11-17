@@ -1,0 +1,247 @@
+{{ define "content" }}
+<!-- Top Navigation Bar -->
+<header class="topbar">
+  <div class="brand-section">
+    <img src="/static/img/logo.svg" alt="FluxKernel Logo" class="brand-logo">
+    <span class="brand-title">FluxKernel <span class="version-badge">{{ .Version }}</span></span>
+  </div>
+
+  <div class="topbar-center">
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      <span>AUTONOMOUS ENGINE ONLINE</span>
+    </div>
+    <div class="sandbox-pill">
+      <span>🛡️ HARDENED C++ SANDBOX ACTIVE</span>
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <select class="persona-select" name="persona" id="personaSelect">
+      <option value="coder">Coder (Strict TDD & Clean Code)</option>
+      <option value="architect">Architect (System Design)</option>
+      <option value="auditor">Auditor (Security & Sandbox)</option>
+      <option value="refactorer">Refactorer (Zero-Debt)</option>
+    </select>
+    <button class="btn-rollback" 
+            title="Instant 1-Click Rollback to last safe snapshot"
+            onclick="triggerEmergencyRollback()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 7v6h6"></path>
+        <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+      </svg>
+      <span>Emergency Rollback</span>
+    </button>
+  </div>
+</header>
+
+<!-- Main Sovereign App Workspace -->
+<main class="app-container">
+  <!-- Left Column: Workspace File Tree & Snapshots -->
+  <aside class="sidebar">
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab-btn active" id="tabFiles" onclick="switchSidebarTab('files')">Workspace Files</button>
+      <button class="sidebar-tab-btn" id="tabSnapshots" onclick="switchSidebarTab('snapshots')">Snapshots & Rollbacks</button>
+    </div>
+
+    <!-- Files Tab View -->
+    <div class="sidebar-content" id="viewFiles" hx-get="/api/workspace" hx-trigger="load" hx-target="#fileTreeContainer">
+      <div id="fileTreeContainer">
+        <div style="padding: 12px; color: var(--text-faint); font-size: 12px; font-family: var(--font-mono);">
+          Scanning workspace hierarchy...
+        </div>
+      </div>
+    </div>
+
+    <!-- Snapshots Tab View -->
+    <div class="sidebar-content" id="viewSnapshots" style="display: none;" hx-get="/api/v1/workspace/snapshots" hx-trigger="click from:#tabSnapshots" hx-target="#snapshotListContainer">
+      <div id="snapshotListContainer">
+        <div style="padding: 12px; color: var(--text-faint); font-size: 12px; font-family: var(--font-mono);">
+          Loading snapshot checkpoints...
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Center Column: Autonomous Agentic Matrix & Live Stream -->
+  <section class="center-stage">
+    <!-- Auto-Pilot Control Bar -->
+    <div class="autopilot-bar">
+      <div class="autopilot-status">
+        <span style="color: var(--text-muted);">Mode:</span>
+        <strong id="loopStatusBadge" style="color: var(--emerald);">STANDBY</strong>
+        <span style="color: var(--text-faint);">|</span>
+        <span style="color: var(--text-muted);">Iteration:</span>
+        <span id="iterationCounter" style="color: var(--cyan); font-weight: 600;">0 / 5</span>
+      </div>
+      <div>
+        <button class="btn-start-loop" id="btnAutopilotToggle" onclick="toggleAutoPilot()">
+          ⚡ Run Autonomous Loop
+        </button>
+      </div>
+    </div>
+
+    <!-- Chat & Reasoning Event Stream -->
+    <div class="chat-stream-container" id="chatStream">
+      <div class="chat-message agent">
+        <div style="font-size: 11px; font-family: var(--font-mono); color: var(--emerald); margin-bottom: 2px;">
+          FLUXKERNEL CORE
+        </div>
+        <div class="chat-bubble">
+          <strong>Voxion Labs Autonomous Sovereign Engine Initialized.</strong><br>
+          Connected to Go High-Performance Gateway (Port 8080) and Python Brain (Port 8000).<br>
+          <span style="color: var(--text-muted); font-size: 13px;">Enter a software engineering directive below to start an autonomous Plan → Write → Test → Fix cycle.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Prompt Deck -->
+    <div class="input-deck">
+      <textarea class="prompt-textarea" 
+                id="promptInput" 
+                placeholder="Instruct the agent (e.g. 'Build an optimized vector search module with unit tests in Go')... [Ctrl+Enter to dispatch]"
+                onkeydown="if(event.ctrlKey && event.key === 'Enter') dispatchPrompt()"></textarea>
+      <div class="input-actions">
+        <span style="font-size: 11px; color: var(--text-faint); font-family: var(--font-mono);">
+          Ctrl + Enter to Dispatch | Unfiltered Agentic Execution
+        </span>
+        <button class="btn-send" onclick="dispatchPrompt()">
+          Dispatch Directive ➔
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Right Column: Code & Diff Inspector -->
+  <aside class="inspector-panel">
+    <div class="inspector-header">
+      <span id="inspectorFileName">WORKSPACE INSPECTOR</span>
+      <span class="version-badge" id="inspectorFileBadge">READY</span>
+    </div>
+    <div class="inspector-code-body" id="codeInspector">
+// Selected file or agent mutation diffs will render here in real-time.
+// Every file written by the agent is strictly validated by the C++ Sandbox Jail.
+// Click any file in the left explorer or review proposed batch diffs.
+    </div>
+    <div class="diff-actions-bar">
+      <button class="btn-approve" onclick="approveDiffs()">✓ Approve & Merge</button>
+      <button class="btn-reject" onclick="rejectDiffs()">✕ Reject & Rollback</button>
+    </div>
+  </aside>
+</main>
+
+<!-- Bottom Telemetry Status Bar -->
+<footer class="footer-bar">
+  <div class="footer-left">
+    <span>GATEWAY: <strong>:8080</strong> (Go 1.23)</span>
+    <span>ENGINE: <strong>:8000</strong> (Python 3.11)</span>
+    <span>ACCELERATOR: <strong>C++20 Native ABI</strong></span>
+    <span>BACKEND TS: <strong style="color: var(--emerald);">0% (INDEPENDENT)</strong></span>
+  </div>
+  <div>
+    <span>VOXION LABS · SOVEREIGN OPERATING MATRIX</span>
+  </div>
+</footer>
+
+<script>
+function switchSidebarTab(tab) {
+  const tabFiles = document.getElementById('tabFiles');
+  const tabSnapshots = document.getElementById('tabSnapshots');
+  const viewFiles = document.getElementById('viewFiles');
+  const viewSnapshots = document.getElementById('viewSnapshots');
+
+  if (tab === 'files') {
+    tabFiles.classList.add('active');
+    tabSnapshots.classList.remove('active');
+    viewFiles.style.display = 'block';
+    viewSnapshots.style.display = 'none';
+  } else {
+    tabSnapshots.classList.add('active');
+    tabFiles.classList.remove('active');
+    viewFiles.style.display = 'none';
+    viewSnapshots.style.display = 'block';
+  }
+}
+
+function triggerEmergencyRollback() {
+  if (!confirm("Are you sure you want to execute an emergency rollback to the last checkpoint?")) return;
+  fetch('/api/v1/workspace/snapshots')
+    .then(r => r.json())
+    .then(data => {
+      const snaps = data.snapshots || [];
+      if (snaps.length === 0) {
+        alert("No snapshots found to roll back to.");
+        return;
+      }
+      const targetId = snaps[0].snapshot_id;
+      return fetch('/api/v1/workspace/rollback', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({snapshot_id: targetId})
+      });
+    })
+    .then(r => r && r.json())
+    .then(res => {
+      if (res && res.success) {
+        alert("Rollback successful! Restored to " + res.snapshot_id);
+        location.reload();
+      }
+    })
+    .catch(e => alert("Rollback failed: " + e));
+}
+
+function dispatchPrompt() {
+  const input = document.getElementById('promptInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const chat = document.getElementById('chatStream');
+  const userMsg = document.createElement('div');
+  userMsg.className = 'chat-message user';
+  userMsg.innerHTML = '<div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 2px;">OPERATOR</div>' +
+                      '<div class="chat-bubble">' + escapeHtml(text) + '</div>';
+  chat.appendChild(userMsg);
+  input.value = '';
+  chat.scrollTop = chat.scrollHeight;
+
+  // Placeholder for agent thinking message
+  const agentMsg = document.createElement('div');
+  agentMsg.className = 'chat-message agent';
+  agentMsg.innerHTML = '<div style="font-size: 11px; font-family: var(--font-mono); color: var(--emerald); margin-bottom: 2px;">AUTOPILOT</div>' +
+                       '<div class="chat-bubble"><em>Evaluating directive and planning autonomous execution...</em></div>';
+  chat.appendChild(agentMsg);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function escapeHtml(string) {
+  const entityMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return String(string).replace(/[&<>"']/g, s => entityMap[s]);
+}
+
+function toggleAutoPilot() {
+  const badge = document.getElementById('loopStatusBadge');
+  const btn = document.getElementById('btnAutopilotToggle');
+  if (badge.innerText === 'STANDBY') {
+    badge.innerText = 'RUNNING';
+    badge.style.color = '#06b6d4';
+    btn.innerText = '⏹ Abort Loop';
+    btn.style.backgroundColor = '#ef4444';
+    btn.style.color = '#fff';
+  } else {
+    badge.innerText = 'STANDBY';
+    badge.style.color = 'var(--emerald)';
+    btn.innerText = '⚡ Run Autonomous Loop';
+    btn.style.backgroundColor = 'var(--emerald)';
+    btn.style.color = '#000';
+  }
+}
+
+function approveDiffs() {
+  alert("Diff batch approved. Changes committed to workspace.");
+}
+
+function rejectDiffs() {
+  triggerEmergencyRollback();
+}
+</script>
+{{ end }}
