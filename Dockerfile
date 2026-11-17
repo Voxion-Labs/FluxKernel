@@ -66,6 +66,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     libpq-dev \
     python3-dev \
+    portaudio19-dev \
+    libasound2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python -m venv /opt/venv
