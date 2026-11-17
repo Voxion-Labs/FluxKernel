@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.core.rollback_manager import RollbackManager
 from app.tools.code_executor import execute_code_sync
 from app.tools.file_manager import (
     SecurityException,
@@ -25,6 +26,15 @@ class CodeExecuteRequest(BaseModel):
     code: str
     language: str = "python"
     timeout: int = 30
+
+
+class SnapshotRequest(BaseModel):
+    label: str | None = None
+    trigger: str = "manual"
+
+
+class RollbackRequest(BaseModel):
+    snapshot_id: str
 
 
 @router.get("/tree")
@@ -66,5 +76,36 @@ async def execute_workspace_code(req: CodeExecuteRequest):
     try:
         result = execute_code_sync(req.code, language=req.language, timeout=req.timeout)
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/snapshots")
+async def list_workspace_snapshots(limit: int = 50):
+    try:
+        return {"snapshots": RollbackManager.list_snapshots(limit=limit)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/snapshot")
+async def create_workspace_snapshot(req: SnapshotRequest):
+    try:
+        snapshot = RollbackManager.create_snapshot(
+            trigger=req.trigger,
+            label=req.label,
+        )
+        return {"snapshot": snapshot}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/rollback")
+async def rollback_workspace(req: RollbackRequest):
+    try:
+        result = RollbackManager.rollback_to_snapshot(req.snapshot_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

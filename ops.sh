@@ -38,8 +38,10 @@ do_test() {
     if command -v python3 >/dev/null 2>&1; then
         python3 engine/tests/test_native_bridge.py
         python3 engine/tests/test_code_executor.py
+        python3 engine/tests/test_sandbox_security.py
+        python3 engine/tests/test_rollback_manager.py
         python3 engine/tests/test_e2e_triumvirate.py
-        success "Python verification, code executor, and native bridge passed!"
+        success "Python verification, sandbox security, rollback engine, and native bridge passed!"
     fi
 }
 

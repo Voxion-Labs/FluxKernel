@@ -84,7 +84,7 @@ func (h *WorkspaceHandler) scanDirectory(basePath, relPath string) ([]FileNode, 
 	var nodes []FileNode
 	for _, entry := range entries {
 		name := entry.Name()
-		if name == ".flux_temp" || name == ".git" || name == "node_modules" {
+		if name == ".flux_temp" || name == ".flux_snapshots" || name == ".git" || name == "node_modules" {
 			continue
 		}
 
@@ -138,11 +138,18 @@ func (h *WorkspaceHandler) handleWriteFile(w http.ResponseWriter, r *http.Reques
 	}
 
 	cleanRel := filepath.Clean(payload.Path)
-	if strings.HasPrefix(cleanRel, "..") || filepath.IsAbs(cleanRel) {
+	cleanPosix := filepath.ToSlash(cleanRel)
+	lowerPosix := strings.ToLower(cleanPosix)
+
+	// Block path traversal and writing to protected internal partitions
+	if strings.HasPrefix(cleanRel, "..") || filepath.IsAbs(cleanRel) ||
+		strings.HasPrefix(lowerPosix, ".git") ||
+		strings.HasPrefix(lowerPosix, ".flux_snapshots") ||
+		strings.HasPrefix(lowerPosix, ".env") {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(map[string]string{
-			"error": "Path traversal blocked: attempts to access outside workspace bounds",
+			"error": "Path traversal or protected partition write blocked",
 		})
 		return
 	}

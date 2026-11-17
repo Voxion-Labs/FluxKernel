@@ -106,6 +106,18 @@ func TestWorkspaceHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("Block Protected Partition Write", func(t *testing.T) {
+		payload := `{"path": ".git/config", "content": "Rogue config"}`
+		req := httptest.NewRequest(http.MethodPost, "/api/workspace", bytes.NewBufferString(payload))
+		rec := httptest.NewRecorder()
+
+		h.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusForbidden {
+			t.Errorf("expected 403 Forbidden for protected partition, got %d", rec.Code)
+		}
+	})
+
 	t.Run("Get Workspace Tree", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/workspace", nil)
 		rec := httptest.NewRecorder()

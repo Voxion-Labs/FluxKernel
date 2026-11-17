@@ -28,8 +28,9 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from app.core.llm_router import route_llm
+from app.core.rollback_manager import RollbackManager
 from app.tools.code_executor import execute_code_sync
-from app.tools.file_manager import write_file
+from app.tools.file_manager import SecurityException, write_file
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 MAX_ITERATIONS = 5
@@ -199,17 +200,38 @@ async def run_agentic_loop(
             state.status = "failed"
             return
 
+        # ── SNAPSHOT: Atomic State Checkpoint ─────────────────────────────────
+        snapshot = RollbackManager.create_snapshot(
+            trigger="pre_mutation",
+            iteration=iteration,
+            label=f"Loop {loop_id} - Iteration {iteration}",
+        )
+        await state.emit(
+            "snapshot_created",
+            {
+                "iteration": iteration,
+                "snapshot_id": snapshot["snapshot_id"],
+                "file_count": snapshot["file_count"],
+            },
+        )
+
         # ── WRITE: Persist files to workspace ─────────────────────────────────
         for file_entry in files:
             path: str = file_entry.get("path", "")
             content: str = file_entry.get("content", "")
             if not path:
                 continue
-            write_file(path, content)
-            code_map[path] = content
-            diff_entry = DiffEntry(path=path, content=content, iteration=iteration)
-            state.files_written.append(diff_entry)
-            await state.emit("file_written", {"iteration": iteration, "path": path})
+            try:
+                write_file(path, content)
+                code_map[path] = content
+                diff_entry = DiffEntry(path=path, content=content, iteration=iteration)
+                state.files_written.append(diff_entry)
+                await state.emit("file_written", {"iteration": iteration, "path": path})
+            except SecurityException as sec_err:
+                await state.emit(
+                    "security_violation",
+                    {"iteration": iteration, "path": path, "error": str(sec_err)},
+                )
 
         # ── TEST: Execute the entrypoint ──────────────────────────────────────
         if not entrypoint:

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from app.core.native_bridge import verify_path_safe
+from app.core.native_bridge import verify_path_safe, verify_write_safe
 
 # Define the absolute root of the repository safely
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
@@ -51,7 +51,13 @@ def read_file(relative_path: str) -> str:
 
 def write_file(relative_path: str, content: str) -> bool:
     target = _resolve_and_check_path(relative_path)
-    # Ensure parents exist natively
+
+    # Native write safety check: block tampering with .git, .flux_snapshots, .env
+    if not verify_write_safe(WORKSPACE_DIR, target):
+        raise SecurityException(
+            f"Write rejected: '{relative_path}' targets a protected partition or unauthorized location."
+        )
+
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(content, encoding="utf-8")
     return True
@@ -59,6 +65,13 @@ def write_file(relative_path: str, content: str) -> bool:
 
 def delete_file(relative_path: str) -> bool:
     target = _resolve_and_check_path(relative_path)
+
+    # Native write/delete safety check
+    if not verify_write_safe(WORKSPACE_DIR, target):
+        raise SecurityException(
+            f"Deletion rejected: '{relative_path}' targets a protected partition or unauthorized location."
+        )
+
     if target.is_file():
         target.unlink()
         return True
@@ -70,11 +83,14 @@ def get_file_tree(dir_path: str = "") -> list[dict]:
     if not target_dir.is_dir():
         return []
 
+    # Internal partitions that must remain hidden from the agent/user file tree
+    hidden_names = {".flux_temp", ".flux_snapshots", ".git", "__pycache__"}
+
     tree = []
     try:
         for entry in os.scandir(target_dir):
-            if entry.name == ".flux_temp":
-                continue  # Hide temporary engine structures
+            if entry.name in hidden_names:
+                continue
 
             relative_val = Path(entry.path).relative_to(WORKSPACE_DIR).as_posix()
             node = {
@@ -87,7 +103,6 @@ def get_file_tree(dir_path: str = "") -> list[dict]:
                 node["children"] = get_file_tree(relative_val)
             tree.append(node)
     except Exception:
-        pass  # In a production system, log this. Otherwise, list what is available gracefully.
+        pass
 
-    # Sort folders first, then files
     return sorted(tree, key=lambda x: (x["type"] == "file", x["name"].lower()))

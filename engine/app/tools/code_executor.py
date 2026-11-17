@@ -18,6 +18,7 @@ import tempfile
 from pathlib import Path
 from typing import Literal
 
+from app.core.native_bridge import verify_command_safe
 from app.core.task_queue import celery_app
 from app.tools.file_manager import WORKSPACE_DIR
 
@@ -258,6 +259,16 @@ def execute_code_sync(
     Suitable for tasks expected to complete within `timeout` seconds.
     Supported languages: python, cpp, go.
     """
+    # Hardened Sandbox Barrier: intercept destructive system commands
+    if not verify_command_safe(code):
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": "Execution blocked by FluxKernel Sandbox: Destructive or unauthorized system operation detected.",
+            "exit_code": 126,
+            "language": language,
+        }
+
     match language:
         case "python":
             return _run_python(code, timeout)

@@ -54,6 +54,18 @@ FLUX_API float flux_fast_vector_dot(const float* a, const float* b, size_t len);
  */
 FLUX_API int32_t flux_sandbox_verify_path(const char* base_dir, const char* target_path);
 
+/**
+ * @brief Verifies that target_path is safe for writing (inside base_dir and not in protected directories).
+ * @return 1 if path is safe for write, 0 if write must be blocked.
+ */
+FLUX_API int32_t flux_sandbox_verify_write(const char* base_dir, const char* target_path);
+
+/**
+ * @brief Inspects a shell/system command for destructive or host-tampering operations.
+ * @return 1 if command is permitted, 0 if dangerous command detected.
+ */
+FLUX_API int32_t flux_security_verify_command(const char* cmd_str);
+
 #ifdef __cplusplus
 }
 #endif

@@ -4,7 +4,8 @@ native_bridge.py — Python C ABI bridge to the FluxKernel C++20 native engine.
 Provides zero-overhead bare-metal execution for:
   - High-speed vector dot product (accelerating embeddings/cosine similarity)
   - Memory-level difference calculation (accelerating DiffBatch generation)
-  - Canonical sandbox path traversal validation
+  - Canonical sandbox path traversal validation & write protection
+  - Destructive command & shell injection interception
   - Hardware arithmetic compute kernels
 
 Transparent fallback: If the native shared library (libflux_core.so / flux_core.dll)
@@ -88,6 +89,14 @@ if _lib is not None:
         # int32_t flux_sandbox_verify_path(const char* base_dir, const char* target_path)
         _lib.flux_sandbox_verify_path.restype = ctypes.c_int32
         _lib.flux_sandbox_verify_path.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+
+        # int32_t flux_sandbox_verify_write(const char* base_dir, const char* target_path)
+        _lib.flux_sandbox_verify_write.restype = ctypes.c_int32
+        _lib.flux_sandbox_verify_write.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+
+        # int32_t flux_security_verify_command(const char* cmd_str)
+        _lib.flux_security_verify_command.restype = ctypes.c_int32
+        _lib.flux_security_verify_command.argtypes = [ctypes.c_char_p]
     except AttributeError:
         _IS_NATIVE_LOADED = False
         _lib = None
@@ -106,7 +115,7 @@ def get_native_version() -> str:
     if _IS_NATIVE_LOADED and _lib is not None:
         raw = _lib.flux_version()
         return raw.decode("utf-8") if raw else "Unknown"
-    return "FluxKernel-Native-PythonFallback-v0.3.0"
+    return "FluxKernel-Native-PythonFallback-v0.4.0"
 
 
 def compute(a: int, b: int) -> int:
@@ -124,7 +133,7 @@ def is_sandbox_available() -> bool:
 
 
 def calculate_diff_distance(a: str, b: str) -> int:
-    """Calculate byte-level diff distance between two string buffers."""
+    """Compute difference score between two strings using native memory diffing or fallback."""
     if _IS_NATIVE_LOADED and _lib is not None:
         bytes_a = a.encode("utf-8")
         bytes_b = b.encode("utf-8")
@@ -189,3 +198,93 @@ def verify_path_safe(base_dir: str | Path, target_path: str | Path) -> bool:
         return True
     except (ValueError, Exception):
         return False
+
+
+def verify_write_safe(base_dir: str | Path, target_path: str | Path) -> bool:
+    """
+    Verify that target_path is safe to write:
+    1. Resides strictly inside base_dir.
+    2. Does NOT touch internal protected directories (.git, .flux_snapshots) or sensitive keys (.env).
+    """
+    if not verify_path_safe(base_dir, target_path):
+        return False
+
+    base_str = str(base_dir)
+    target_str = str(target_path)
+
+    if _IS_NATIVE_LOADED and _lib is not None:
+        result = _lib.flux_sandbox_verify_write(
+            base_str.encode("utf-8"),
+            target_str.encode("utf-8"),
+        )
+        return result == 1
+
+    # Pure Python fallback
+    try:
+        base_resolved = Path(base_str).resolve()
+        target_resolved = (
+            (base_resolved / target_str).resolve()
+            if not Path(target_str).is_absolute()
+            else Path(target_str).resolve()
+        )
+        rel = target_resolved.relative_to(base_resolved).as_posix().lower()
+
+        # Disallow writing to protected internal partitions
+        protected_prefixes = (
+            ".git",
+            ".flux_snapshots",
+            ".env",
+        )
+        for p in protected_prefixes:
+            if rel == p or rel.startswith(f"{p}/"):
+                return False
+
+        return True
+    except (ValueError, Exception):
+        return False
+
+
+def verify_command_safe(cmd_str: str) -> bool:
+    """
+    Scan an arbitrary shell or subprocess command string to detect destructive operations
+    (root directory deletion, disk formatting, fork-bombs, poweroff, etc.).
+    Returns True if command is permitted, False if dangerous.
+    """
+    if not cmd_str:
+        return True
+
+    if _IS_NATIVE_LOADED and _lib is not None:
+        result = _lib.flux_security_verify_command(cmd_str.encode("utf-8"))
+        return result == 1
+
+    # Pure Python fallback
+    lower_cmd = cmd_str.lower()
+    dangerous_patterns = (
+        "rm -rf /",
+        "rm -rf /*",
+        "rm -fr /",
+        "rmdir /s /q c:\\",
+        "rd /s /q c:\\",
+        "del /f /s /q c:\\",
+        "del /s /q c:\\",
+        ":(){ :|:& };:",
+        "%0|%0",
+        "mkfs",
+        "format c:",
+        "format d:",
+        "diskpart",
+        "fdisk",
+        "dd if=/dev/zero",
+        "dd if=/dev/urandom",
+        "chmod -r 777 /",
+        "icacls c:\\ /grant",
+        "shutdown -s",
+        "shutdown /s",
+        "init 0",
+        "systemctl poweroff",
+    )
+    for pattern in dangerous_patterns:
+        if pattern in lower_cmd:
+            return False
+
+    return True
