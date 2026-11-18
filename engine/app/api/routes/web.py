@@ -14,12 +14,30 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.tools.web_fetcher import download_file, fetch_api, fetch_url, scrape_page
+from app.tools.web_fetcher import (
+    download_file,
+    fetch_api,
+    fetch_url,
+    research_topic,
+    scrape_page,
+    search_web,
+)
 
 router = APIRouter(prefix="/web", tags=["web"])
 
 
 # ── Request Models ─────────────────────────────────────────────────────────────
+
+
+class SearchRequest(BaseModel):
+    query: str
+    max_results: int = 5
+
+
+class ResearchRequest(BaseModel):
+    query: str
+    max_sources: int = 3
+    auto_cache_rag: bool = True
 
 
 class FetchRequest(BaseModel):
@@ -95,3 +113,35 @@ async def web_api(request: ApiRequest) -> dict:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"API request failed: {e!s}")
+
+
+@router.post("/search")
+async def web_search(request: SearchRequest) -> dict:
+    """
+    Perform zero-key autonomous live web search for factual and technical grounding.
+    """
+    try:
+        results = search_web(query=request.query, max_results=request.max_results)
+        return {
+            "query": request.query,
+            "count": len(results),
+            "results": results,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Web search failed: {e!s}")
+
+
+@router.post("/research")
+async def web_research(request: ResearchRequest) -> dict:
+    """
+    Autonomously research a topic across live web intelligence and cache directly
+    into FluxKernel's C++ SIMD Vector Memory Vault with zero Git LFS overhead.
+    """
+    try:
+        return research_topic(
+            query=request.query,
+            max_sources=request.max_sources,
+            auto_cache_rag=request.auto_cache_rag,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Research synthesis failed: {e!s}")

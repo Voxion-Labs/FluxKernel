@@ -42,6 +42,7 @@ do_test() {
         python3 engine/tests/test_rollback_manager.py
         python3 engine/tests/test_agentic_loop.py
         python3 engine/tests/test_universal_rag.py
+        python3 engine/tests/test_web_intelligence.py
         python3 engine/tests/test_e2e_triumvirate.py
         success "Python verification, sandbox security, rollback engine, and native bridge passed!"
     fi

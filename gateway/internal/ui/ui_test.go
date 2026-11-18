@@ -372,6 +372,45 @@ func TestUIHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("Web Search and Research Form Dispatch", func(t *testing.T) {
+		// Live Research dispatch
+		researchForm := url.Values{}
+		researchForm.Set("query", "Quantum Physics")
+		researchForm.Set("mode", "research")
+		researchForm.Set("theme", "light")
+		reqResearch := httptest.NewRequest(http.MethodPost, "/dashboard/web/search", strings.NewReader(researchForm.Encode()))
+		reqResearch.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recResearch := httptest.NewRecorder()
+		h.HandleWebSearch(recResearch, reqResearch)
+
+		if recResearch.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on web research, got %d", recResearch.Code)
+		}
+
+		// Live Search dispatch
+		searchForm := url.Values{}
+		searchForm.Set("query", "Algorithms")
+		searchForm.Set("mode", "search")
+		searchForm.Set("theme", "light")
+		reqSearch := httptest.NewRequest(http.MethodPost, "/dashboard/web/search", strings.NewReader(searchForm.Encode()))
+		reqSearch.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recSearch := httptest.NewRecorder()
+		h.HandleWebSearch(recSearch, reqSearch)
+
+		if recSearch.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on web search, got %d", recSearch.Code)
+		}
+
+		// Clear dispatch
+		reqClear := httptest.NewRequest(http.MethodGet, "/dashboard/web/search?clear=1&theme=light", nil)
+		recClear := httptest.NewRecorder()
+		h.HandleWebSearch(recClear, reqClear)
+
+		if recClear.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on web clear, got %d", recClear.Code)
+		}
+	})
+
 	t.Run("Static Asset Delivery (CSS Only, Zero JS)", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/static/css/dashboard.css", nil)
 		rec := httptest.NewRecorder()

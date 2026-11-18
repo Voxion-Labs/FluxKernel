@@ -84,6 +84,22 @@ type LoopStatus struct {
 	Cards         []DecisionCard `json:"cards"`
 }
 
+// WebSearchHit represents a live search hit returned by the web intelligence engine.
+type WebSearchHit struct {
+	Title   string `json:"title"`
+	Snippet string `json:"snippet"`
+	URL     string `json:"url"`
+}
+
+// WebResearchBrief represents an investigated topic with synthesized findings.
+type WebResearchBrief struct {
+	Query         string `json:"query"`
+	SourcesCount  int    `json:"sources_investigated"`
+	ResearchBrief string `json:"research_brief"`
+	ChunksIndexed int    `json:"chunks_indexed"`
+	CachedSIMD    bool   `json:"cached_to_simd_vault"`
+}
+
 // UIHandler manages server-side rendering of pure HTML/CSS templates (Zero-JS).
 type UIHandler struct {
 	cfg          *config.Config
@@ -105,6 +121,10 @@ type UIHandler struct {
 	ragDomain  string
 	ragResults []RAGChunk
 	ragStatus  *RAGStatus
+
+	webQuery string
+	webHits  []WebSearchHit
+	webBrief *WebResearchBrief
 }
 
 // NewUIHandler initializes the template engine and sets up pure SSR handlers.
@@ -228,6 +248,23 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 		ragRes = make([]RAGChunk, len(h.ragResults))
 		copy(ragRes, h.ragResults)
 	}
+
+	webQ := h.webQuery
+	var webHitsCopy []WebSearchHit
+	if len(h.webHits) > 0 {
+		webHitsCopy = make([]WebSearchHit, len(h.webHits))
+		copy(webHitsCopy, h.webHits)
+	}
+	var webBriefCopy *WebResearchBrief
+	if h.webBrief != nil {
+		webBriefCopy = &WebResearchBrief{
+			Query:         h.webBrief.Query,
+			SourcesCount:  h.webBrief.SourcesCount,
+			ResearchBrief: h.webBrief.ResearchBrief,
+			ChunksIndexed: h.webBrief.ChunksIndexed,
+			CachedSIMD:    h.webBrief.CachedSIMD,
+		}
+	}
 	h.mu.Unlock()
 
 	ragStatus := h.fetchRAGStatus()
@@ -250,6 +287,9 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 		"RAGDomain":         ragD,
 		"RAGResults":        ragRes,
 		"RAGStatus":         ragStatus,
+		"WebQuery":          webQ,
+		"WebHits":           webHitsCopy,
+		"WebBrief":          webBriefCopy,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -1319,6 +1359,108 @@ func (h *UIHandler) fetchRAGStatus() *RAGStatus {
 		return &RAGStatus{SIMDAccelerated: true}
 	}
 	return &st
+}
+
+func (h *UIHandler) HandleWebSearch(w http.ResponseWriter, r *http.Request) {
+	theme := r.FormValue("theme")
+	if theme == "" {
+		theme = r.URL.Query().Get("theme")
+	}
+	if theme == "" {
+		theme = "light"
+	}
+
+	clear := r.URL.Query().Get("clear")
+	if clear == "1" || clear == "true" {
+		h.mu.Lock()
+		h.webQuery = ""
+		h.webHits = nil
+		h.webBrief = nil
+		h.mu.Unlock()
+		http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+		return
+	}
+
+	query := strings.TrimSpace(r.FormValue("query"))
+	if query == "" {
+		query = strings.TrimSpace(r.URL.Query().Get("query"))
+	}
+	mode := strings.TrimSpace(r.FormValue("mode")) // "search" or "research"
+	if mode == "" {
+		mode = "research"
+	}
+
+	if query != "" {
+		if mode == "research" {
+			payload := map[string]interface{}{
+				"query":          query,
+				"max_sources":    3,
+				"auto_cache_rag": true,
+			}
+			body, _ := json.Marshal(payload)
+			req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/web/research", bytes.NewReader(body))
+			if err == nil {
+				req.Header.Set("Content-Type", "application/json")
+				resp, err := h.client.Do(req)
+				if err == nil && resp != nil {
+					defer resp.Body.Close()
+					var res struct {
+						Query               string         `json:"query"`
+						SourcesInvestigated int            `json:"sources_investigated"`
+						Findings            []WebSearchHit `json:"findings"`
+						ResearchBrief       string         `json:"research_brief"`
+						CachedToSIMDVault   bool           `json:"cached_to_simd_vault"`
+						ChunksIndexed       int            `json:"chunks_indexed"`
+					}
+					if json.NewDecoder(resp.Body).Decode(&res) == nil {
+						h.mu.Lock()
+						h.webQuery = query
+						h.webHits = res.Findings
+						h.webBrief = &WebResearchBrief{
+							Query:         res.Query,
+							SourcesCount:  res.SourcesInvestigated,
+							ResearchBrief: res.ResearchBrief,
+							ChunksIndexed: res.ChunksIndexed,
+							CachedSIMD:    res.CachedToSIMDVault,
+						}
+						h.flashMessage = fmt.Sprintf("Live web research completed for '%s'. Grounded via %d sources, cached to C++ SIMD memory.", query, res.SourcesInvestigated)
+						h.flashType = "flash-success"
+						h.mu.Unlock()
+					}
+				}
+			}
+		} else {
+			payload := map[string]interface{}{
+				"query":       query,
+				"max_results": 5,
+			}
+			body, _ := json.Marshal(payload)
+			req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/web/search", bytes.NewReader(body))
+			if err == nil {
+				req.Header.Set("Content-Type", "application/json")
+				resp, err := h.client.Do(req)
+				if err == nil && resp != nil {
+					defer resp.Body.Close()
+					var res struct {
+						Query   string         `json:"query"`
+						Count   int            `json:"count"`
+						Results []WebSearchHit `json:"results"`
+					}
+					if json.NewDecoder(resp.Body).Decode(&res) == nil {
+						h.mu.Lock()
+						h.webQuery = query
+						h.webHits = res.Results
+						h.webBrief = nil
+						h.flashMessage = fmt.Sprintf("Found %d live web sources for '%s'.", res.Count, query)
+						h.flashType = "flash-success"
+						h.mu.Unlock()
+					}
+				}
+			}
+		}
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
 }
 
 // ServeStatic exposes the embedded static asset file server.
