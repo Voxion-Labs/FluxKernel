@@ -335,6 +335,43 @@ func TestUIHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("RAG Index and Search Form Dispatch", func(t *testing.T) {
+		// Index form dispatch
+		indexForm := url.Values{}
+		indexForm.Set("theme", "light")
+		reqIndex := httptest.NewRequest(http.MethodPost, "/dashboard/rag/index", strings.NewReader(indexForm.Encode()))
+		reqIndex.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recIndex := httptest.NewRecorder()
+		h.HandleRAGIndex(recIndex, reqIndex)
+
+		if recIndex.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on RAG index, got %d", recIndex.Code)
+		}
+
+		// Search form dispatch
+		searchForm := url.Values{}
+		searchForm.Set("query", "SIMD vector dot")
+		searchForm.Set("domain", "tech")
+		searchForm.Set("theme", "light")
+		reqSearch := httptest.NewRequest(http.MethodPost, "/dashboard/rag/search", strings.NewReader(searchForm.Encode()))
+		reqSearch.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recSearch := httptest.NewRecorder()
+		h.HandleRAGSearch(recSearch, reqSearch)
+
+		if recSearch.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on RAG search, got %d", recSearch.Code)
+		}
+
+		// Clear search dispatch
+		reqClear := httptest.NewRequest(http.MethodGet, "/dashboard/rag/search?clear=1&theme=light", nil)
+		recClear := httptest.NewRecorder()
+		h.HandleRAGSearch(recClear, reqClear)
+
+		if recClear.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on RAG clear, got %d", recClear.Code)
+		}
+	})
+
 	t.Run("Static Asset Delivery (CSS Only, Zero JS)", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/static/css/dashboard.css", nil)
 		rec := httptest.NewRecorder()

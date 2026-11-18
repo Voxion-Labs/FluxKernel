@@ -95,6 +95,66 @@
           <div style="font-size: 12px; color: var(--text-muted); padding: 8px;">No snapshots captured yet.</div>
         {{ end }}
       </div>
+
+      <div class="pane-header" style="margin-top: 16px; border-top: 1px solid var(--border);">
+        <span>C++ SIMD Vector Memory</span>
+        <span class="badge badge-info" style="font-size: 10px;">{{ if .RAGStatus }}{{ .RAGStatus.TotalChunks }} chunks{{ else }}SIMD{{ end }}</span>
+      </div>
+      <div style="padding: 10px 8px;">
+        <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
+          <form method="POST" action="/dashboard/rag/index" style="margin: 0; flex: 1;">
+            <input type="hidden" name="theme" value="{{ $.Theme }}">
+            <button type="submit" class="btn-restore" style="width: 100%;" title="Scan & index workspace files into C++ SIMD Vector Memory">
+              ⚡ Re-Index Workspace
+            </button>
+          </form>
+        </div>
+
+        <!-- Semantic Search Form -->
+        <form method="POST" action="/dashboard/rag/search" style="margin: 0;">
+          <input type="hidden" name="theme" value="{{ $.Theme }}">
+          <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+            <input type="text" name="query" class="text-input" style="font-size: 11px; padding: 4px 6px;" 
+                   placeholder="Semantic search (e.g. ROI, SIMD dot)..." 
+                   value="{{ .RAGQuery }}" required>
+            <select name="domain" class="select-input" style="font-size: 10px; padding: 2px 4px; max-width: 75px;">
+              <option value="all" {{ if eq .RAGDomain "all" }}selected{{ end }}>All</option>
+              <option value="tech" {{ if eq .RAGDomain "tech" }}selected{{ end }}>Tech</option>
+              <option value="finance" {{ if eq .RAGDomain "finance" }}selected{{ end }}>Finance</option>
+              <option value="science" {{ if eq .RAGDomain "science" }}selected{{ end }}>Science</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <button type="submit" class="btn-primary" style="font-size: 11px; padding: 4px 8px; flex: 1;">Search Vault ➔</button>
+            {{ if .RAGResults }}
+            <a href="/dashboard/rag/search?clear=1&theme={{ $.Theme }}" class="btn-discard" style="font-size: 11px; padding: 4px 6px;">Clear</a>
+            {{ end }}
+          </div>
+        </form>
+
+        <!-- RAG Results List -->
+        {{ if .RAGResults }}
+        <div style="margin-top: 10px;">
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">
+            Matched Chunks ({{ len .RAGResults }}):
+          </div>
+          {{ range .RAGResults }}
+          <div class="snapshot-item" style="margin-bottom: 6px; padding: 6px 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <a href="/dashboard?file={{ .Path }}&theme={{ $.Theme }}" class="snapshot-title" style="font-size: 11px; text-decoration: underline;">
+                📄 {{ .Path }}
+              </a>
+              <span class="badge badge-success" style="font-size: 9px;">Score: {{ printf "%.3f" .Score }}</span>
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 2px;">
+              Domain: <strong style="text-transform: capitalize;">{{ .Domain }}</strong> | Chunk: #{{ .ChunkIndex }}
+            </div>
+            <div style="font-size: 11px; font-family: var(--font-mono); background: var(--bg-hover); padding: 4px; border-radius: 4px; max-height: 70px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;">{{ .Content }}</div>
+          </div>
+          {{ end }}
+        </div>
+        {{ end }}
+      </div>
     </div>
   </aside>
 

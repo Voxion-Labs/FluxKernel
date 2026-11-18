@@ -6,10 +6,20 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-from sqlalchemy.orm import Session
+try:
+    from sqlalchemy.orm import Session
+    from app.database.models import ProjectDocumentChunk, ProjectPin
 
-from app.database.models import ProjectDocumentChunk, ProjectPin
+    _HAS_SQLALCHEMY = True
+except (ImportError, Exception):
+    Session = Any  # type: ignore
+    ProjectDocumentChunk = None  # type: ignore
+    ProjectPin = None  # type: ignore
+    _HAS_SQLALCHEMY = False
+
+from app.core.native_bridge import _IS_NATIVE_LOADED, vector_dot_product
 from app.tools.file_manager import (
     WORKSPACE_DIR,
     _resolve_and_check_path,
@@ -19,13 +29,46 @@ _TOKEN_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_./:-]{1,63}")
 _VECTOR_SIZE = 96
 _CHUNK_SIZE = 1200
 _CHUNK_OVERLAP = 180
+
+
+# In-memory zero-dependency store for bare-metal host execution
+@dataclass
+class MemoryChunk:
+    path: str
+    chunk_index: int
+    content: str
+    embedding: list[float]
+    domain: str = "general"
+
+
+_IN_MEMORY_VAULT: list[MemoryChunk] = []
+
+# Multi-domain text extensions (Zero Node.js/TS, strictly tri-stack & multi-disciplinary)
 _TEXT_EXTENSIONS = {
+    # Tech & Systems Engineering
+    ".go",
+    ".cpp",
+    ".cc",
+    ".cxx",
+    ".h",
+    ".hpp",
+    ".c",
     ".py",
-    ".ts",
-    ".tsx",
-    ".js",
-    ".jsx",
+    ".rs",
+    ".sql",
+    ".sh",
+    ".bat",
+    ".ps1",
+    # Science, Math & Simulation
+    ".tex",
+    ".latex",
+    ".m",
+    ".r",
+    # Finance, Commerce & Tabular Data
+    ".csv",
+    ".tsv",
     ".json",
+    # Documents, Specs & Enterprise Operations
     ".md",
     ".txt",
     ".yaml",
@@ -34,11 +77,34 @@ _TEXT_EXTENSIONS = {
     ".ini",
     ".env",
     ".css",
-    ".scss",
     ".html",
-    ".sql",
-    ".csv",
 }
+
+
+def infer_domain(path_str: str) -> str:
+    """Classify file path into its sovereign domain archetype."""
+    ext = Path(path_str).suffix.lower()
+    if ext in {
+        ".go",
+        ".cpp",
+        ".cc",
+        ".cxx",
+        ".h",
+        ".hpp",
+        ".c",
+        ".py",
+        ".rs",
+        ".sql",
+        ".sh",
+        ".bat",
+        ".ps1",
+    }:
+        return "tech"
+    if ext in {".tex", ".latex", ".m", ".r"}:
+        return "science"
+    if ext in {".csv", ".tsv", ".json"}:
+        return "finance"
+    return "general"
 
 
 @dataclass
@@ -46,6 +112,8 @@ class RetrievedChunk:
     path: str
     content: str
     score: float
+    domain: str = "general"
+    chunk_index: int = 0
 
 
 def _is_text_file(path: Path) -> bool:
@@ -92,11 +160,103 @@ def _embed_text(text: str) -> list[float]:
 
 
 def _cosine_similarity(left: list[float], right: list[float]) -> float:
-    return sum(a * b for a, b in zip(left, right))
+    """Compute cosine similarity via bare-metal C++20 SIMD AVX2 vector dot product."""
+    return vector_dot_product(left, right)
 
 
 def _relative_workspace_path(path: Path) -> str:
     return path.relative_to(WORKSPACE_DIR).as_posix()
+
+
+def scan_and_index_workspace(
+    db: Session | None = None, target_dir: Path | None = None
+) -> dict[str, Any]:
+    """
+    Scans the entire workspace directory, indexes all multi-domain files (Tech, Science, Finance, Docs)
+    into ProjectPin and ProjectDocumentChunk with SIMD-ready embeddings.
+    Falls back gracefully to in-memory vault when database is absent.
+    """
+    global _IN_MEMORY_VAULT
+    root = target_dir or WORKSPACE_DIR
+    if not root.exists():
+        root.mkdir(parents=True, exist_ok=True)
+
+    eligible_files = [p for p in root.rglob("*") if _is_text_file(p)]
+    # Ignore internal partitions (.git, .flux_snapshots, .flux_temp)
+    eligible_files = [
+        p
+        for p in eligible_files
+        if not any(part.startswith(".") and part != "." for part in p.relative_to(root).parts)
+    ]
+
+    total_chunks = 0
+    domains_count: dict[str, int] = {"tech": 0, "science": 0, "finance": 0, "general": 0}
+    new_in_memory: list[MemoryChunk] = []
+
+    use_db = _HAS_SQLALCHEMY and db is not None
+
+    for file_path in eligible_files:
+        try:
+            rel_path = file_path.relative_to(root).as_posix()
+        except ValueError:
+            rel_path = file_path.name
+        domain = infer_domain(rel_path)
+        domains_count[domain] = domains_count.get(domain, 0) + 1
+
+        pin = None
+        if use_db:
+            pin = db.query(ProjectPin).filter(ProjectPin.path == rel_path).first()
+            if pin is None:
+                pin = ProjectPin(path=rel_path, kind="file", label=f"Domain: {domain}")
+                db.add(pin)
+                db.flush()
+            else:
+                db.query(ProjectDocumentChunk).filter(
+                    ProjectDocumentChunk.pin_id == pin.id
+                ).delete()
+                db.flush()
+
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            content = file_path.read_text(encoding="utf-8", errors="ignore")
+
+        chunks = _chunk_text(content)
+        for index, chunk in enumerate(chunks):
+            embedding = _embed_text(chunk)
+            if use_db and pin is not None:
+                db.add(
+                    ProjectDocumentChunk(
+                        pin_id=pin.id,
+                        path=rel_path,
+                        chunk_index=index,
+                        content=chunk,
+                        embedding_json=json.dumps(embedding),
+                    )
+                )
+            new_in_memory.append(
+                MemoryChunk(
+                    path=rel_path,
+                    chunk_index=index,
+                    content=chunk,
+                    embedding=embedding,
+                    domain=domain,
+                )
+            )
+            total_chunks += 1
+
+    if use_db:
+        db.commit()
+
+    _IN_MEMORY_VAULT = new_in_memory
+
+    return {
+        "status": "indexed",
+        "files_indexed": len(eligible_files),
+        "chunks_indexed": total_chunks,
+        "domains": domains_count,
+        "simd_accelerated": _IS_NATIVE_LOADED,
+    }
 
 
 def pin_workspace_paths(
@@ -160,30 +320,67 @@ def delete_pin(db: Session, pin_id: int) -> bool:
     return True
 
 
-def retrieve_context(db: Session, query: str, limit: int = 5) -> list[RetrievedChunk]:
+def retrieve_context(
+    db: Session | None = None,
+    query: str = "",
+    limit: int = 5,
+    domain_filter: str | None = None,
+) -> list[RetrievedChunk]:
     if not query.strip():
         return []
 
     query_embedding = _embed_text(query)
     results: list[RetrievedChunk] = []
 
-    chunks = db.query(ProjectDocumentChunk).all()
-    for chunk in chunks:
-        try:
-            embedding = json.loads(chunk.embedding_json)
-        except json.JSONDecodeError:
-            continue
+    use_db = _HAS_SQLALCHEMY and db is not None
 
-        score = _cosine_similarity(query_embedding, embedding)
-        if score <= 0:
-            continue
-        results.append(
-            RetrievedChunk(
-                path=chunk.path,
-                content=chunk.content,
-                score=score,
+    if use_db:
+        chunks = db.query(ProjectDocumentChunk).all()
+        for chunk in chunks:
+            domain = infer_domain(chunk.path)
+            if domain_filter and domain_filter.lower() != "all" and domain != domain_filter.lower():
+                continue
+
+            try:
+                embedding = json.loads(chunk.embedding_json)
+            except json.JSONDecodeError:
+                continue
+
+            score = _cosine_similarity(query_embedding, embedding)
+            if score <= 0:
+                continue
+            results.append(
+                RetrievedChunk(
+                    path=chunk.path,
+                    content=chunk.content,
+                    score=score,
+                    domain=domain,
+                    chunk_index=chunk.chunk_index,
+                )
             )
-        )
+    else:
+        for m_chunk in _IN_MEMORY_VAULT:
+            if (
+                domain_filter
+                and domain_filter.lower() != "all"
+                and m_chunk.domain != domain_filter.lower()
+            ):
+                continue
+            score = _cosine_similarity(query_embedding, m_chunk.embedding)
+            if score <= 0:
+                continue
+            results.append(
+                RetrievedChunk(
+                    path=m_chunk.path,
+                    content=m_chunk.content,
+                    score=score,
+                    domain=m_chunk.domain,
+                    chunk_index=m_chunk.chunk_index,
+                )
+            )
+
+    results.sort(key=lambda item: item.score, reverse=True)
+    return results[:limit]
 
     results.sort(key=lambda item: item.score, reverse=True)
     return results[:limit]

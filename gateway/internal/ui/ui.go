@@ -56,6 +56,23 @@ type DecisionCard struct {
 	Timestamp   string `json:"timestamp"`
 }
 
+// RAGChunk represents a semantic chunk retrieved via C++ SIMD vector dot product.
+type RAGChunk struct {
+	Path       string  `json:"path"`
+	Content    string  `json:"content"`
+	Score      float64 `json:"score"`
+	Domain     string  `json:"domain"`
+	ChunkIndex int     `json:"chunk_index"`
+}
+
+// RAGStatus represents the health and stats of the SIMD Vector Memory Vault.
+type RAGStatus struct {
+	TotalPinnedFiles int            `json:"total_pinned_files"`
+	TotalChunks      int            `json:"total_chunks"`
+	SIMDAccelerated  bool           `json:"simd_accelerated"`
+	Domains          map[string]int `json:"domains"`
+}
+
 // LoopStatus represents the state of the active Auto-Pilot loop.
 type LoopStatus struct {
 	LoopID        string         `json:"loop_id"`
@@ -83,6 +100,11 @@ type UIHandler struct {
 	activeLoopID     string
 	loopStatus       *LoopStatus
 	pendingDiffBatch *DiffBatch
+
+	ragQuery   string
+	ragDomain  string
+	ragResults []RAGChunk
+	ragStatus  *RAGStatus
 }
 
 // NewUIHandler initializes the template engine and sets up pure SSR handlers.
@@ -198,7 +220,17 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 	if h.pendingDiffBatch != nil {
 		currentDiffBatch = h.pendingDiffBatch
 	}
+
+	ragQ := h.ragQuery
+	ragD := h.ragDomain
+	var ragRes []RAGChunk
+	if len(h.ragResults) > 0 {
+		ragRes = make([]RAGChunk, len(h.ragResults))
+		copy(ragRes, h.ragResults)
+	}
 	h.mu.Unlock()
+
+	ragStatus := h.fetchRAGStatus()
 
 	data := map[string]interface{}{
 		"Title":             "FluxKernel — Enterprise Minimalist Console",
@@ -214,6 +246,10 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 		"FlashType":         flashType,
 		"Loop":              currentLoop,
 		"DiffBatch":         currentDiffBatch,
+		"RAGQuery":          ragQ,
+		"RAGDomain":         ragD,
+		"RAGResults":        ragRes,
+		"RAGStatus":         ragStatus,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -1167,6 +1203,122 @@ func (h *UIHandler) getSnapshots() []SnapshotEntry {
 		})
 	}
 	return results
+}
+
+func (h *UIHandler) HandleRAGIndex(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	theme := r.FormValue("theme")
+	if theme == "" {
+		theme = "light"
+	}
+
+	req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/rag/index", nil)
+	if err == nil {
+		resp, err := h.client.Do(req)
+		if err == nil && resp != nil {
+			defer resp.Body.Close()
+			var result struct {
+				Status        string         `json:"status"`
+				FilesIndexed  int            `json:"files_indexed"`
+				ChunksIndexed int            `json:"chunks_indexed"`
+				Domains       map[string]int `json:"domains"`
+			}
+			if json.NewDecoder(resp.Body).Decode(&result) == nil {
+				h.mu.Lock()
+				h.flashMessage = fmt.Sprintf("Indexed %d multi-domain files (%d chunks) into C++ SIMD Vector Memory.", result.FilesIndexed, result.ChunksIndexed)
+				h.flashType = "flash-success"
+				h.mu.Unlock()
+			}
+		}
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+func (h *UIHandler) HandleRAGSearch(w http.ResponseWriter, r *http.Request) {
+	theme := r.FormValue("theme")
+	if theme == "" {
+		theme = r.URL.Query().Get("theme")
+	}
+	if theme == "" {
+		theme = "light"
+	}
+
+	clear := r.URL.Query().Get("clear")
+	if clear == "1" || clear == "true" {
+		h.mu.Lock()
+		h.ragQuery = ""
+		h.ragDomain = ""
+		h.ragResults = nil
+		h.mu.Unlock()
+		http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+		return
+	}
+
+	query := strings.TrimSpace(r.FormValue("query"))
+	if query == "" {
+		query = strings.TrimSpace(r.URL.Query().Get("query"))
+	}
+	domain := strings.TrimSpace(r.FormValue("domain"))
+	if domain == "" {
+		domain = strings.TrimSpace(r.URL.Query().Get("domain"))
+	}
+
+	if query != "" {
+		payload := map[string]interface{}{
+			"query":  query,
+			"limit":  6,
+			"domain": domain,
+		}
+		body, _ := json.Marshal(payload)
+		req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/rag/search", bytes.NewReader(body))
+		if err == nil {
+			req.Header.Set("Content-Type", "application/json")
+			resp, err := h.client.Do(req)
+			if err == nil && resp != nil {
+				defer resp.Body.Close()
+				var searchResp struct {
+					Query           string     `json:"query"`
+					ResultsCount    int        `json:"results_count"`
+					SIMDAccelerated bool       `json:"simd_accelerated"`
+					Results         []RAGChunk `json:"results"`
+				}
+				if json.NewDecoder(resp.Body).Decode(&searchResp) == nil {
+					h.mu.Lock()
+					h.ragQuery = query
+					h.ragDomain = domain
+					h.ragResults = searchResp.Results
+					h.mu.Unlock()
+				}
+			}
+		}
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+func (h *UIHandler) fetchRAGStatus() *RAGStatus {
+	req, err := http.NewRequest(http.MethodGet, h.cfg.EngineURL+"/api/v1/rag/status", nil)
+	if err != nil {
+		return &RAGStatus{SIMDAccelerated: true}
+	}
+	resp, err := h.client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		return &RAGStatus{SIMDAccelerated: true}
+	}
+	defer resp.Body.Close()
+
+	var st RAGStatus
+	if err := json.NewDecoder(resp.Body).Decode(&st); err != nil {
+		return &RAGStatus{SIMDAccelerated: true}
+	}
+	return &st
 }
 
 // ServeStatic exposes the embedded static asset file server.
