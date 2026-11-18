@@ -175,19 +175,16 @@ jobs:
 
       - name: Execute Python Test Suite
         run: |
-          echo "Running backend test discovery..."
-          if [ -d "engine/tests" ]; then
-            PYTHONPATH=engine pytest -v engine/tests/
-          else
-            echo "Testing module import integrity for FastAPI backend..."
-            python -c "
-            import sys
-            sys.path.insert(0, 'engine')
-            from app.main import app
-            assert app.title == 'FluxKernel API'
-            print('FastAPI app initialization validated successfully')
-            "
-          fi
+          echo "Running backend test discovery with pytest..."
+          PYTHONPATH=engine pytest -v engine/tests/
+          echo "Verifying zero-dependency standalone execution (bare-metal fallback)..."
+          python engine/tests/test_native_bridge.py
+          python engine/tests/test_code_executor.py
+          python engine/tests/test_sandbox_security.py
+          python engine/tests/test_rollback_manager.py
+          python engine/tests/test_agentic_loop.py
+          python engine/tests/test_universal_rag.py
+          python engine/tests/test_e2e_triumvirate.py
 
   # ────────────────────────────────────────────────────────────────────────────
   # 4. CONTAINER BUILD VERIFICATION (MULTI-STAGE DOCKERFILE)
