@@ -26,7 +26,7 @@ from app.tools.file_manager import (
 )
 
 _TOKEN_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_./:-]{1,63}")
-_VECTOR_SIZE = 96
+_VECTOR_SIZE = 384
 _CHUNK_SIZE = 1200
 _CHUNK_OVERLAP = 180
 

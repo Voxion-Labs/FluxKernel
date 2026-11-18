@@ -12,8 +12,8 @@ ENGINE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ENGINE_DIR not in sys.path:
     sys.path.insert(0, ENGINE_DIR)
 
-from app.core import project_rag
-from app.tools import web_fetcher
+from app.core import project_rag  # noqa: E402
+from app.tools import web_fetcher  # noqa: E402
 
 
 def test_search_web_structure():

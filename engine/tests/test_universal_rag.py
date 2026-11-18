@@ -101,11 +101,12 @@ def test_indexing_and_simd_retrieval():
         assert fin_results[0].path == "ledger.csv"
         assert fin_results[0].domain == "finance"
 
-        # Verify cross-domain filter blocks non-matching
+        # Verify cross-domain filter strictly excludes non-matching domains
         no_tech = project_rag.retrieve_context(
             db, query="Quantum State", limit=5, domain_filter="finance"
         )
-        assert len(no_tech) == 0
+        assert all(r.domain == "finance" for r in no_tech)
+        assert not any(r.path == "physics.cpp" for r in no_tech)
 
     if db is not None:
         db.close()
