@@ -2,9 +2,27 @@
   "schema_version": "1.0.0",
   "repository": "Voxion-Labs/FluxKernel",
   "description": "Autonomous commit metadata ledger and release audit tracker",
-  "last_updated": "2026-11-18T05:53:22.459568+00:00",
-  "total_commits_tracked": 15,
+  "last_updated": "2026-11-18T06:02:17.543330+00:00",
+  "total_commits_tracked": 16,
   "commits": [
+    {
+      "sha": "2a70193bf2a92c75fdc918ad2f18ddd0698b4adf",
+      "branch": "main",
+      "message": "docs(readme): rewrite technical architecture guide and remove gitattributes",
+      "author": {
+        "name": "R-Jena",
+        "email": "rudrajena440@gmail.com",
+        "actor": "R-Jena"
+      },
+      "timestamp": "2026-11-18T11:32:07+05:30",
+      "commit_url": "https://github.com/Voxion-Labs/FluxKernel/commit/2a70193bf2a92c75fdc918ad2f18ddd0698b4adf",
+      "run_id": "44248386484",
+      "files_modified": [
+        ".gitattributes",
+        "README.md"
+      ],
+      "recorded_at": "2026-11-18T06:02:17.543161+00:00"
+    },
     {
       "sha": "7f626c84914c78220e2f5c6a9491f0bdf64a1bca",
       "branch": "main",
