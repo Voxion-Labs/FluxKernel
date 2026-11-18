@@ -40,6 +40,7 @@ do_test() {
         python3 engine/tests/test_code_executor.py
         python3 engine/tests/test_sandbox_security.py
         python3 engine/tests/test_rollback_manager.py
+        python3 engine/tests/test_agentic_loop.py
         python3 engine/tests/test_e2e_triumvirate.py
         success "Python verification, sandbox security, rollback engine, and native bridge passed!"
     fi
@@ -102,6 +103,7 @@ case "$CMD" in
     lint|format) do_lint ;;
     test)        do_test ;;
     push)        do_push ;;
+    start)       exec ./run.sh ;;
     clean)       do_clean ;;
     up)          docker compose up -d ;;
     down)        docker compose down ;;

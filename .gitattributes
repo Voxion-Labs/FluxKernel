@@ -1,0 +1,24 @@
+# ==============================================================================
+# Voxion Labs - FluxKernel Repository Language & Attributes Configuration
+# Enforces GitHub Linguist detection for Sovereign Tri-Stack (Go, C++, Python)
+# ==============================================================================
+
+# Core Primary Languages
+*.go linguist-detectable=true
+*.cpp linguist-detectable=true
+*.hpp linguist-detectable=true
+*.h linguist-detectable=true
+*.py linguist-detectable=true
+
+# Exclude documentation, schemas, and media from inflating language distribution
+*.md linguist-documentation=true
+*.json linguist-generated=true
+*.drawio linguist-documentation=true
+*.svg linguist-documentation=true
+*.html linguist-detectable=true
+*.css linguist-detectable=true
+
+# Vendored, generated, and sandbox partitions
+workspace/* linguist-vendored=true
+.flux_snapshots/* linguist-vendored=true
+assets/* linguist-vendored=true

@@ -10,6 +10,7 @@
         .\ops.ps1 lint                  Format and lint Go, Python, and C++ codebases
         .\ops.ps1 test                  Execute all Go, Python, and C++ test suites
         .\ops.ps1 build                 Build Go gateway binary and local artifacts
+        .\ops.ps1 start                 Launch complete FluxKernel stack and open browser
         .\ops.ps1 up                    Start local multi-container stack via Docker Compose
         .\ops.ps1 down                  Stop Docker Compose stack
         .\ops.ps1 status                Inspect current git status, branch, and unpushed commits
@@ -18,7 +19,7 @@
 
 param (
     [Parameter(Position=0, Mandatory=$true)]
-    [ValidateSet("sync", "rebase", "push", "lint", "format", "test", "build", "up", "down", "status", "clean", "help")]
+    [ValidateSet("sync", "rebase", "push", "lint", "format", "test", "build", "start", "up", "down", "status", "clean", "help")]
     [string]$Command,
 
     [Parameter(Position=1, Mandatory=$false)]
@@ -178,6 +179,7 @@ switch ($Command) {
     "test"    { Invoke-Test }
     "push"    { Invoke-Push -commitMsg $Message }
     "build"   { Invoke-Build }
+    "start"   { & ".\run.bat" }
     "up"      { Write-Step "Starting Docker Compose..."; docker compose up -d }
     "down"    { Write-Step "Stopping Docker Compose..."; docker compose down }
     "clean"   { Invoke-Clean }
