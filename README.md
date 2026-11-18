@@ -13,8 +13,8 @@
 ![Gateway](https://img.shields.io/badge/Gateway-Go%201.23%20%7C%20High--Concurrency-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![Accelerator](https://img.shields.io/badge/Accelerator-C%2B%2B20%20%7C%20Native%20Bare--Metal-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)
 ![Kernel](https://img.shields.io/badge/Kernel-Python%20%7C%20FastAPI-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Interface](https://img.shields.io/badge/Interface-Next.js%20%7C%20React-000000?style=for-the-badge&logo=next.js&logoColor=white)
-![Backend TS](https://img.shields.io/badge/Backend%20TS-0%25%20Independent-brightgreen?style=for-the-badge)
+![Interface](https://img.shields.io/badge/Interface-Go%20Embedded%20SSR%20%7C%20Zero--JS-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-0%25%20Purged-brightgreen?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Proprietary-red.svg?style=for-the-badge)
 
 </div>
@@ -27,11 +27,11 @@
 
 Standard large language model (LLM) implementations function as stateless, localized chat wrappers requiring constant human orchestration and context injection. FluxKernel abandons this paradigm. It operates as a stateful, agentic operating system capable of executing complex software architecture tasks independently.
 
-The system is architected as a **high-concurrency tri-stack backend** featuring **0% TypeScript in the backend**:
-1. **High-Performance Go Gateway (`gateway/`)**: Handles edge networking, SSE streaming multiplexing, webhook ring buffering, and concurrent file-tree operations on Port `8080`.
+The system is architected as a **high-concurrency tri-stack sovereign platform** featuring **0% TypeScript / 0% Node.js across the entire repository**:
+1. **High-Performance Go Gateway & Web Console (`gateway/`)**: Handles edge networking, SSE streaming multiplexing, webhook ring buffering, concurrent file-tree operations, and embedded Zero-JS Web UI on Port `8080`.
 2. **C++20 Native Accelerator (`native/`)**: Delivers bare-metal SIMD vector dot products, high-speed memory difference scoring, and canonical sandbox filesystem traversal barriers via a C ABI shared library (`libflux_core`).
 3. **Python Cognitive Kernel (`engine/`)**: Serves as the central cognitive brain on Port `8000`, orchestrating the autonomous reasoning cycle, LLM tool dispatch, AST codebase mutations, and multi-language execution (Python, native Go, and C++20).
-4. **Command Matrix Interface (`frontend/`)**: A pure client-side Next.js/React command matrix on Port `3000` dedicated purely to UI presentation, Monaco editing, and human oversight.
+4. **Sovereign Embedded Console (`gateway/internal/ui/`)**: A pure Go `html/template` SSR console on Port `8080` with zero client-side JavaScript, enterprise minimalist styling, light/dark/system themes, in-place file editing, and unified batch diff approval gates.
 
 ---
 
@@ -50,10 +50,10 @@ FluxKernel/
 │       ├── database-schema.md      # Relational and vector schemas
 │       ├── system-design.drawio    # Top-level execution topology
 │       └── tool-flow-diagram.png   # Tool routing execution flow
-├── gateway/                        # Go 1.23 High-Performance Gateway (:8080)
+├── gateway/                        # Go 1.23 High-Performance Gateway & Sovereign Console (:8080)
 │   ├── cmd/server/main.go          # Gateway entrypoint & reverse proxy
-│   ├── internal/handlers/          # Chat SSE, Autopilot, Tasks, Webhooks, Workspace
-│   ├── internal/proxy/             # Upstream router & CORS middleware
+│   ├── internal/handlers/          # Specialized API handlers (Chat, Autopilot, Tasks, Web, Webhooks, Workspace)
+│   ├── internal/ui/                # Embedded Zero-JS Web UI (templates, static CSS, diff engine)
 │   ├── Dockerfile                  # Distroless minimal attack-surface image
 │   └── go.mod
 ├── native/                         # C++20 Bare-Metal Native Accelerator
@@ -68,11 +68,6 @@ FluxKernel/
 │   ├── tests/                      # Unit & integration verification suites
 │   ├── requirements.txt            # Python dependencies (Celery, FastAPI, etc.)
 │   └── pyproject.toml              # Ruff linter and formatter configuration
-├── frontend/                       # Pure Client Next.js Command Matrix (:3000)
-│   ├── src/components/             # Monaco editor, diff viewer, chat surface
-│   ├── src/store/                  # Zustand decentralized client stores
-│   ├── next.config.js              # Reverse proxy routing to Go Gateway (:8080)
-│   └── package.json
 ├── ops.ps1 / ops.sh                # Operational Workflow CLI (sync, push, lint, test)
 ├── Dockerfile                      # Multi-stage production container build
 └── docker-compose.yml              # Local multi-service container orchestration
@@ -102,11 +97,12 @@ Operating on Port `:8000`, Python remains the central cognitive brain:
 *   **`llm_router.py`**: Dynamic model routing evaluating prompt complexity, context sizes, and cost/latency constraints.
 *   **`file_manager.py` & `os_controller.py`**: Workspace modification tools gated by native path validation.
 
-### 3.4 Command Matrix (`frontend/`)
-Located within `/frontend`, the Next.js/React interface acts as a zero-backend client:
-*   All previous Next.js backend API routes (`src/app/api/`) have been eradicated.
-*   Directs all API requests to the Go Gateway at `http://localhost:8080`.
-*   Provides real-time Monaco code editing, batch diff approvals, and live telemetry streaming.
+### 3.4 Sovereign Embedded Web Console (`gateway/internal/ui/`)
+Embedded directly inside the Go Gateway binary, the Web Console serves as a zero-JS, high-security operational surface:
+*   **Zero-JS Enterprise Compliance**: Operates purely on Go standard library `html/template`, HTML5 semantic forms, and HTTP 303 post-redirect-get state transitions. Zero external JS bundles, zero CDN dependencies.
+*   **Minimalist Light/Dark/System Theming**: Clean white/slate FAANG internal tool aesthetic with default Light mode, native Dark mode, and OS-synchronized System mode.
+*   **Dynamic Workspace In-Place File Editor**: Inspect, edit, and create workspace files directly with automatic pre-mutation safety snapshots and C++ sandbox validation.
+*   **Autonomous Batch Diff Review Gate**: Visualizes agent-generated changes via a high-performance LCS unified diff viewer with 1-click **Approve & Merge** or **Reject & Rollback** controls.
 
 ---
 
@@ -158,12 +154,8 @@ docker-compose up --build -d
    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
    ```
 
-3. **Start Next.js Command Matrix (`:3000`)**:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
+3. **Access Sovereign Console (`:8080`)**:
+   Open `http://localhost:8080/dashboard` in any web browser.
 
 ---
 
@@ -194,5 +186,5 @@ FluxKernel operates under the **Voxion Labs Proprietary Research License (VL-PRL
 ---
 <div align="center">
   (c) 2026 Voxion Labs & Rudranarayan Jena<br>
-  <strong>Voxion Labs</strong> · Autonomous Engineering · Agentic AI · Go · C++20 · Python · Next.js
+  <strong>Voxion Labs</strong> · Autonomous Engineering · Agentic AI · Go · C++20 · Python
 </div>
