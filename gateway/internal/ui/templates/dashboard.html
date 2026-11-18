@@ -150,6 +150,55 @@
     </div>
     {{ end }}
 
+    <!-- Autonomous Batch Diff Approval Gate -->
+    {{ if and .DiffBatch (eq .DiffBatch.Status "pending") }}
+    <div class="diff-gate-card">
+      <div class="diff-gate-header">
+        <div class="diff-gate-meta">
+          <span class="badge badge-warning">⚡ PENDING AGENTIC MUTATION REVIEW</span>
+          <span class="diff-gate-title">Proposed Changes ({{ len .DiffBatch.Files }} file{{ if gt (len .DiffBatch.Files) 1 }}s{{ end }})</span>
+          <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">Batch ID: {{ .DiffBatch.BatchID }}</span>
+        </div>
+        <div class="diff-gate-actions">
+          <form method="POST" action="/dashboard/diff/approve" style="margin: 0;">
+            <input type="hidden" name="theme" value="{{ $.Theme }}">
+            {{ if $.ActiveFile }}<input type="hidden" name="file" value="{{ $.ActiveFile }}">{{ end }}
+            <button type="submit" class="btn-approve">✓ Approve & Merge</button>
+          </form>
+          <form method="POST" action="/dashboard/diff/reject" style="margin: 0;">
+            <input type="hidden" name="theme" value="{{ $.Theme }}">
+            {{ if $.ActiveFile }}<input type="hidden" name="file" value="{{ $.ActiveFile }}">{{ end }}
+            <button type="submit" class="btn-reject">✕ Reject & Rollback</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="diff-viewer-container">
+        {{ range .DiffBatch.Files }}
+        <div class="diff-file-card">
+          <div class="diff-file-header">
+            <span class="diff-file-path">📄 {{ .Path }}</span>
+            <div class="diff-stats">
+              <span class="stat-add">+{{ .Additions }}</span>
+              <span class="stat-del">-{{ .Deletions }}</span>
+            </div>
+          </div>
+          <div class="diff-code-table">
+            {{ range .Lines }}
+            <div class="diff-row diff-{{ .Type }}">
+              <span class="diff-ln old">{{ if .OldNum }}{{ .OldNum }}{{ end }}</span>
+              <span class="diff-ln new">{{ if .NewNum }}{{ .NewNum }}{{ end }}</span>
+              <span class="diff-sign">{{ if eq .Type "add" }}+{{ else if eq .Type "del" }}-{{ else }} {{ end }}</span>
+              <span class="diff-text">{{ .Text }}</span>
+            </div>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }}
+      </div>
+    </div>
+    {{ end }}
+
     <!-- Scrollable Conversation Ledger -->
     <div class="conversation-scroll">
       <div class="msg-card system">
@@ -198,21 +247,57 @@
     </form>
   </section>
 
-  <!-- Right Column: Workspace File Inspector -->
+  <!-- Right Column: Dynamic Workspace File Editor & Inspector -->
   <aside class="pane-right">
+    {{ if .ActiveFile }}
     <div class="pane-header">
-      <span>File Inspector</span>
-      <span class="badge badge-neutral">{{ if .ActiveFile }}{{ .ActiveFile }}{{ else }}None{{ end }}</span>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span>File Editor</span>
+        <span class="badge badge-neutral">{{ .ActiveFile }}</span>
+      </div>
+      <form method="POST" action="/dashboard/file/delete" style="margin: 0;">
+        <input type="hidden" name="file" value="{{ .ActiveFile }}">
+        <input type="hidden" name="theme" value="{{ .Theme }}">
+        <button type="submit" class="btn-delete-file" title="Delete file from workspace">🗑 Delete</button>
+      </form>
     </div>
-    <div class="code-viewer">
-{{- if .ActiveFileContent -}}
-{{ .ActiveFileContent }}
-{{- else -}}
-// No file selected.
-// Click any file on the left navigation to inspect its contents.
-// Protected partitions (.git, .flux_snapshots, .env) are isolated by the C++ Sandbox.
-{{- end -}}
+
+    <form method="POST" action="/dashboard/file/write" class="editor-form">
+      <input type="hidden" name="file" value="{{ .ActiveFile }}">
+      <input type="hidden" name="theme" value="{{ .Theme }}">
+
+      <div class="editor-toolbar">
+        <span class="editor-info">Lines: {{ .ActiveFileLines }} | Size: {{ len .ActiveFileContent }} bytes</span>
+        <div style="display: flex; gap: 8px;">
+          <a href="/dashboard?file={{ .ActiveFile }}&theme={{ .Theme }}" class="btn-discard" title="Reload original file from disk">Discard</a>
+          <button type="submit" class="btn-save-file">💾 Save Changes</button>
+        </div>
+      </div>
+
+      <textarea name="content" class="code-editor" spellcheck="false">{{ .ActiveFileContent }}</textarea>
+    </form>
+    {{ else }}
+    <div class="pane-header">
+      <span>File Inspector & Creator</span>
+      <span class="badge badge-neutral">Workspace</span>
     </div>
+
+    <div class="new-file-container">
+      <div class="new-file-intro">
+        Select any file from the left navigation tree to inspect and edit in real time, or create a new file in the workspace below:
+      </div>
+      <form method="POST" action="/dashboard/file/create" class="new-file-form">
+        <input type="hidden" name="theme" value="{{ .Theme }}">
+        <label class="form-label" for="new-filename">File Path (Relative to workspace):</label>
+        <input type="text" id="new-filename" name="filename" class="text-input" placeholder="e.g. main.go, app/engine.py" required>
+        
+        <label class="form-label" for="new-content" style="margin-top: 8px;">Initial Content (Optional):</label>
+        <textarea id="new-content" name="content" class="code-editor" style="height: 180px;" placeholder="// Add code here..."></textarea>
+        
+        <button type="submit" class="btn-primary" style="margin-top: 10px; width: 100%;">Create File in Workspace ➔</button>
+      </form>
+    </div>
+    {{ end }}
   </aside>
 </main>
 

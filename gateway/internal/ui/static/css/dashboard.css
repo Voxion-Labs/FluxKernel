@@ -554,6 +554,171 @@ body {
   word-break: break-all;
 }
 
+/* ── Batch Diff Approval Gate ────────────────────────────────────────────── */
+
+.diff-gate-card {
+  background-color: var(--bg-surface);
+  border-bottom: 2px solid var(--warning);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.diff-gate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.diff-gate-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.diff-gate-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.diff-gate-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-approve {
+  background-color: var(--success);
+  color: #ffffff;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-approve:hover {
+  background-color: #15803d;
+}
+
+.btn-reject {
+  background-color: var(--danger);
+  color: #ffffff;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-reject:hover {
+  background-color: var(--danger-hover);
+}
+
+.diff-viewer-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.diff-file-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--bg-body);
+}
+
+.diff-file-header {
+  background-color: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diff-file-path {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.diff-stats {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  display: flex;
+  gap: 8px;
+}
+
+.stat-add {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.stat-del {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.diff-code-table {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+.diff-row {
+  display: flex;
+  padding: 1px 4px;
+}
+
+.diff-row.diff-add {
+  background-color: rgba(22, 163, 74, 0.12);
+  color: var(--text-primary);
+}
+
+.diff-row.diff-del {
+  background-color: rgba(220, 38, 38, 0.12);
+  color: var(--danger);
+}
+
+.diff-row.diff-same {
+  color: var(--text-secondary);
+}
+
+.diff-ln {
+  width: 32px;
+  text-align: right;
+  color: var(--text-muted);
+  user-select: none;
+  font-size: 10px;
+  padding-right: 4px;
+}
+
+.diff-sign {
+  width: 16px;
+  text-align: center;
+  font-weight: 700;
+  user-select: none;
+}
+
+.diff-text {
+  flex: 1;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 /* Center Pane: Agent Directive & Conversation */
 .pane-center {
   flex: 1;
@@ -701,14 +866,141 @@ body {
   background-color: var(--accent-hover);
 }
 
-/* Right Pane: File Inspector */
+/* Right Pane: Dynamic File Editor & Creator */
 .pane-right {
-  width: 360px;
+  width: 380px;
   background-color: var(--bg-surface);
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+}
+
+.editor-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--bg-elevated);
+}
+
+.editor-info {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.btn-save-file {
+  background-color: var(--accent);
+  color: #ffffff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-save-file:hover {
+  background-color: var(--accent-hover);
+}
+
+.btn-discard {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.btn-discard:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-delete-file {
+  background-color: var(--danger-subtle);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-delete-file:hover {
+  background-color: var(--danger);
+  color: #ffffff;
+}
+
+.code-editor {
+  flex: 1;
+  width: 100%;
+  resize: none;
+  outline: none;
+  border: none;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  background-color: var(--bg-body);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.code-editor:focus {
+  background-color: var(--bg-surface);
+}
+
+.new-file-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.new-file-intro {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.new-file-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.text-input {
+  background-color: var(--bg-body);
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.text-input:focus {
+  border-color: var(--border-focus);
 }
 
 .code-viewer {
