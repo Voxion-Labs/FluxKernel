@@ -214,6 +214,56 @@
         </div>
         {{ end }}
       </div>
+
+      <!-- Cross-AI Learning Adapter & Knowledge Ingestor -->
+      <div class="pane-header" style="margin-top: 16px; border-top: 1px solid var(--border);">
+        <span>Cross-AI Learning Engine</span>
+        <span class="badge badge-info" style="font-size: 10px;">{{ if .AILearning }}{{ .AILearning.TotalTurnsMemorized }} turns{{ else }}Memory{{ end }}</span>
+      </div>
+      <div style="padding: 10px 8px;">
+        <form method="POST" action="/dashboard/learning/ingest" style="margin: 0;">
+          <input type="hidden" name="theme" value="{{ $.Theme }}">
+          <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+            <select name="source" class="select-input" style="font-size: 10px; padding: 3px 4px; flex: 1;">
+              <option value="auto">Auto-Detect</option>
+              <option value="chatgpt">ChatGPT Export</option>
+              <option value="claude">Claude Export/MD</option>
+              <option value="cursor">Cursor Composer/MD</option>
+              <option value="markdown">Generic Markdown</option>
+            </select>
+            <input type="text" name="session_title" class="text-input" style="font-size: 11px; padding: 3px 6px; flex: 1;" placeholder="Title (Optional)">
+          </div>
+          <div style="margin-bottom: 6px;">
+            <textarea name="raw_content" class="code-editor" style="height: 75px; font-size: 10px; width: 100%; box-sizing: border-box; resize: vertical;" placeholder="Paste JSON export, Composer logs, or chat transcripts here..." required></textarea>
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <button type="submit" class="btn-primary" style="font-size: 11px; padding: 4px 8px; flex: 1;">🧠 Memorize into SIMD Vault ➔</button>
+            {{ if and .AILearning (gt .AILearning.TotalSessions 0) }}
+            <button type="submit" formaction="/dashboard/learning/clear" class="btn-discard" style="font-size: 11px; padding: 4px 6px;" title="Clear ingested AI memory">Clear</button>
+            {{ end }}
+          </div>
+        </form>
+
+        <!-- Ingested Sessions Summary -->
+        {{ if and .AILearning .AILearning.RecentSessions }}
+        <div style="margin-top: 10px;">
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">
+            Learned Sessions ({{ len .AILearning.RecentSessions }}):
+          </div>
+          {{ range .AILearning.RecentSessions }}
+          <div class="snapshot-item" style="margin-bottom: 6px; padding: 6px 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <span style="font-size: 11px; font-weight: 600;">🤖 {{ .Title }}</span>
+              <span class="badge badge-success" style="font-size: 9px; text-transform: uppercase;">{{ .Source }}</span>
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted);">
+              {{ .TurnsCount }} turns | {{ .CodeSnippetsCount }} code blocks | {{ .ChunksIndexed }} SIMD chunks
+            </div>
+          </div>
+          {{ end }}
+        </div>
+        {{ end }}
+      </div>
     </div>
   </aside>
 

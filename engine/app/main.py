@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import autopilot, chat, files, history, personas, rag, tasks, web
+from app.api.routes import autopilot, chat, files, history, learning, personas, rag, tasks, web
 from app.database.connection import Base, engine
 
 
@@ -41,6 +41,7 @@ app.include_router(tasks.router, prefix="/api/v1")  # Feature 1: Async task stat
 app.include_router(autopilot.router, prefix="/api/v1")  # Feature 4: Agentic loop
 app.include_router(web.router, prefix="/api/v1")  # Feature 5: Web fetcher
 app.include_router(rag.router, prefix="/api/v1")  # Multi-Domain C++ SIMD Vector RAG
+app.include_router(learning.router, prefix="/api/v1")  # Phase 3: Cross-AI Learning Adapter
 
 
 @app.get("/", tags=["health"])

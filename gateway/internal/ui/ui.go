@@ -100,6 +100,29 @@ type WebResearchBrief struct {
 	CachedSIMD    bool   `json:"cached_to_simd_vault"`
 }
 
+// AILearningSession represents an ingested external AI session.
+type AILearningSession struct {
+	SessionID         string         `json:"session_id"`
+	Title             string         `json:"title"`
+	Source            string         `json:"source"`
+	TurnsCount        int            `json:"turns_count"`
+	CodeSnippetsCount int            `json:"code_snippets_count"`
+	Domains           map[string]int `json:"domains"`
+	ChunksIndexed     int            `json:"chunks_indexed"`
+	CreatedAt         string         `json:"created_at"`
+}
+
+// AILearningStatus represents aggregated metrics of all learned AI sessions.
+type AILearningStatus struct {
+	TotalSessions       int                 `json:"total_sessions"`
+	TotalTurnsMemorized int                 `json:"total_turns_memorized"`
+	TotalCodeSnippets   int                 `json:"total_code_snippets"`
+	TotalChunksIndexed  int                 `json:"total_chunks_indexed"`
+	Sources             map[string]int      `json:"sources"`
+	Domains             map[string]int      `json:"domains"`
+	RecentSessions      []AILearningSession `json:"recent_sessions"`
+}
+
 // UIHandler manages server-side rendering of pure HTML/CSS templates (Zero-JS).
 type UIHandler struct {
 	cfg          *config.Config
@@ -268,6 +291,7 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 	h.mu.Unlock()
 
 	ragStatus := h.fetchRAGStatus()
+	learningStatus := h.fetchAILearningStatus()
 
 	data := map[string]interface{}{
 		"Title":             "FluxKernel — Enterprise Minimalist Console",
@@ -290,6 +314,7 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 		"WebQuery":          webQ,
 		"WebHits":           webHitsCopy,
 		"WebBrief":          webBriefCopy,
+		"AILearning":        learningStatus,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -1459,6 +1484,144 @@ func (h *UIHandler) HandleWebSearch(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+func (h *UIHandler) fetchAILearningStatus() *AILearningStatus {
+	req, err := http.NewRequest(http.MethodGet, h.cfg.EngineURL+"/api/v1/learning/status", nil)
+	if err != nil {
+		return &AILearningStatus{Domains: make(map[string]int), Sources: make(map[string]int)}
+	}
+	resp, err := h.client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		return &AILearningStatus{Domains: make(map[string]int), Sources: make(map[string]int)}
+	}
+	defer resp.Body.Close()
+
+	var st AILearningStatus
+	if err := json.NewDecoder(resp.Body).Decode(&st); err != nil {
+		return &AILearningStatus{Domains: make(map[string]int), Sources: make(map[string]int)}
+	}
+	return &st
+}
+
+// HandleAILearningIngest processes external AI transcript imports (ChatGPT, Claude, Cursor, Markdown).
+func (h *UIHandler) HandleAILearningIngest(w http.ResponseWriter, r *http.Request) {
+	theme := r.FormValue("theme")
+	if theme == "" {
+		theme = r.URL.Query().Get("theme")
+	}
+	if theme == "" {
+		theme = "light"
+	}
+
+	source := strings.TrimSpace(r.FormValue("source"))
+	if source == "" {
+		source = "auto"
+	}
+	title := strings.TrimSpace(r.FormValue("session_title"))
+	rawContent := strings.TrimSpace(r.FormValue("raw_content"))
+
+	if rawContent == "" {
+		h.mu.Lock()
+		h.flashMessage = "Ingestion rejected: Transcript content cannot be empty."
+		h.flashType = "flash-danger"
+		h.mu.Unlock()
+		http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+		return
+	}
+
+	payload := map[string]interface{}{
+		"source":         source,
+		"session_title":  title,
+		"raw_content":    rawContent,
+		"auto_cache_rag": true,
+	}
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/learning/ingest", bytes.NewReader(body))
+	if err != nil {
+		h.mu.Lock()
+		h.flashMessage = fmt.Sprintf("Failed to initialize request: %v", err)
+		h.flashType = "flash-danger"
+		h.mu.Unlock()
+		http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := h.client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		h.mu.Lock()
+		h.flashMessage = "Failed to ingest transcript from engine. Verify transcript formatting."
+		h.flashType = "flash-danger"
+		h.mu.Unlock()
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+		return
+	}
+	defer resp.Body.Close()
+
+	var res struct {
+		Status              string              `json:"status"`
+		SessionsProcessed   int                 `json:"sessions_processed"`
+		TotalTurnsMemorized int                 `json:"total_turns_memorized"`
+		TotalCodeSnippets   int                 `json:"total_code_snippets"`
+		ChunksIndexed       int                 `json:"chunks_indexed"`
+		SourceBreakdown     map[string]int      `json:"source_breakdown"`
+		DomainBreakdown     map[string]int      `json:"domain_breakdown"`
+		Sessions            []AILearningSession `json:"sessions"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		h.mu.Lock()
+		h.flashMessage = fmt.Sprintf("Error decoding ingestion response: %v", err)
+		h.flashType = "flash-danger"
+		h.mu.Unlock()
+		http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+		return
+	}
+
+	h.mu.Lock()
+	h.flashMessage = fmt.Sprintf("✓ Ingested %d turns & %d code snippets across %d session(s). Cached into C++ SIMD Vector Vault.",
+		res.TotalTurnsMemorized, res.TotalCodeSnippets, res.SessionsProcessed)
+	h.flashType = "flash-success"
+	h.messages = append(h.messages, Message{
+		Role:      "system",
+		Content:   fmt.Sprintf("[CROSS-AI MEMORIZED] Absorbed %d turns from %s. C++ SIMD knowledge capsules ready.", res.TotalTurnsMemorized, source),
+		Timestamp: time.Now().Format("15:04:05"),
+	})
+	h.mu.Unlock()
+
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+// HandleAILearningClear clears all ephemeral learned AI sessions.
+func (h *UIHandler) HandleAILearningClear(w http.ResponseWriter, r *http.Request) {
+	theme := r.FormValue("theme")
+	if theme == "" {
+		theme = r.URL.Query().Get("theme")
+	}
+	if theme == "" {
+		theme = "light"
+	}
+
+	req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/learning/clear", nil)
+	if err == nil {
+		resp, err := h.client.Do(req)
+		if err == nil && resp != nil {
+			_ = resp.Body.Close()
+		}
+	}
+
+	h.mu.Lock()
+	h.flashMessage = "Cross-AI learning memory registry cleared."
+	h.flashType = "flash-warning"
+	h.mu.Unlock()
 
 	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
 }

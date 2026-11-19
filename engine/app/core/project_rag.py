@@ -82,7 +82,22 @@ _TEXT_EXTENSIONS = {
 
 
 def infer_domain(path_str: str) -> str:
-    """Classify file path into its sovereign domain archetype."""
+    """Classify file path or memory URI into its sovereign domain archetype."""
+    path_lower = path_str.lower()
+    if "/tech/" in path_lower or "domain:tech" in path_lower or path_lower.endswith(".tech"):
+        return "tech"
+    if (
+        "/science/" in path_lower
+        or "domain:science" in path_lower
+        or path_lower.endswith(".science")
+    ):
+        return "science"
+    if (
+        "/finance/" in path_lower
+        or "domain:finance" in path_lower
+        or path_lower.endswith(".finance")
+    ):
+        return "finance"
     ext = Path(path_str).suffix.lower()
     if ext in {
         ".go",
@@ -382,8 +397,95 @@ def retrieve_context(
     results.sort(key=lambda item: item.score, reverse=True)
     return results[:limit]
 
-    results.sort(key=lambda item: item.score, reverse=True)
-    return results[:limit]
+
+def index_text_block(
+    uri: str,
+    content: str,
+    domain: str = "general",
+    db: Session | None = None,
+) -> int:
+    """
+    Indexes an arbitrary text block (e.g. from live web research or imported AI chat)
+    directly into the SIMD-accelerated memory vault (and database if present).
+    Returns the number of chunks indexed.
+    """
+    global _IN_MEMORY_VAULT
+    chunks = _chunk_text(content)
+    if not chunks:
+        return 0
+
+    use_db = _HAS_SQLALCHEMY and db is not None
+    pin = None
+    if use_db:
+        pin = db.query(ProjectPin).filter(ProjectPin.path == uri).first()
+        if pin is None:
+            pin = ProjectPin(path=uri, kind="memory", label=f"Domain: {domain}")
+            db.add(pin)
+            db.flush()
+        else:
+            db.query(ProjectDocumentChunk).filter(ProjectDocumentChunk.pin_id == pin.id).delete()
+            db.flush()
+
+    count = 0
+    for index, chunk in enumerate(chunks):
+        embedding = _embed_text(chunk)
+        if use_db and pin is not None:
+            db.add(
+                ProjectDocumentChunk(
+                    pin_id=pin.id,
+                    path=uri,
+                    chunk_index=index,
+                    content=chunk,
+                    embedding_json=json.dumps(embedding),
+                )
+            )
+        _IN_MEMORY_VAULT.append(
+            MemoryChunk(
+                path=uri,
+                chunk_index=index,
+                content=chunk,
+                embedding=embedding,
+                domain=domain,
+            )
+        )
+        count += 1
+
+    if use_db:
+        db.commit()
+
+    return count
+
+
+def clear_in_memory_vault() -> None:
+    """Clears all ephemeral in-memory vault chunks."""
+    global _IN_MEMORY_VAULT
+    _IN_MEMORY_VAULT = []
+
+
+def get_vault_stats() -> dict[str, Any]:
+    """Returns real-time diagnostics of the in-memory SIMD vault."""
+    domains: dict[str, int] = {"tech": 0, "science": 0, "finance": 0, "general": 0}
+    ai_memories = 0
+    web_memories = 0
+    workspace_chunks = 0
+
+    for ch in _IN_MEMORY_VAULT:
+        domains[ch.domain] = domains.get(ch.domain, 0) + 1
+        if ch.path.startswith("ai://"):
+            ai_memories += 1
+        elif ch.path.startswith("web://"):
+            web_memories += 1
+        else:
+            workspace_chunks += 1
+
+    return {
+        "total_chunks": len(_IN_MEMORY_VAULT),
+        "ai_memory_chunks": ai_memories,
+        "web_memory_chunks": web_memories,
+        "workspace_chunks": workspace_chunks,
+        "domains": domains,
+        "simd_accelerated": _IS_NATIVE_LOADED,
+    }
 
 
 def build_context_block(chunks: list[RetrievedChunk]) -> str:

@@ -411,6 +411,49 @@ func TestUIHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("Cross-AI Learning Ingest and Clear Form Dispatch", func(t *testing.T) {
+		// 1. Ingest form dispatch with empty content (should reject safely)
+		emptyForm := url.Values{}
+		emptyForm.Set("source", "auto")
+		emptyForm.Set("raw_content", "")
+		emptyForm.Set("theme", "light")
+		reqEmpty := httptest.NewRequest(http.MethodPost, "/dashboard/learning/ingest", strings.NewReader(emptyForm.Encode()))
+		reqEmpty.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recEmpty := httptest.NewRecorder()
+		h.HandleAILearningIngest(recEmpty, reqEmpty)
+
+		if recEmpty.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on empty ingest, got %d", recEmpty.Code)
+		}
+
+		// 2. Ingest form dispatch with valid markdown transcript
+		validForm := url.Values{}
+		validForm.Set("source", "markdown")
+		validForm.Set("session_title", "Golang Channel Design")
+		validForm.Set("raw_content", "# Golang Channel Design\nUser:\nHow do buffered channels prevent goroutine leaks?\nAssistant:\nBuffered channels provide space for values without blocking.\n```go\nch := make(chan int, 10)\n```")
+		validForm.Set("theme", "light")
+		reqValid := httptest.NewRequest(http.MethodPost, "/dashboard/learning/ingest", strings.NewReader(validForm.Encode()))
+		reqValid.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recValid := httptest.NewRecorder()
+		h.HandleAILearningIngest(recValid, reqValid)
+
+		if recValid.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on valid ingest, got %d", recValid.Code)
+		}
+
+		// 3. Clear form dispatch
+		clearForm := url.Values{}
+		clearForm.Set("theme", "light")
+		reqClear := httptest.NewRequest(http.MethodPost, "/dashboard/learning/clear", strings.NewReader(clearForm.Encode()))
+		reqClear.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recClear := httptest.NewRecorder()
+		h.HandleAILearningClear(recClear, reqClear)
+
+		if recClear.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on clear, got %d", recClear.Code)
+		}
+	})
+
 	t.Run("Static Asset Delivery (CSS Only, Zero JS)", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/static/css/dashboard.css", nil)
 		rec := httptest.NewRecorder()

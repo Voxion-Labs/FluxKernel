@@ -388,19 +388,8 @@ def research_topic(
             from app.core import project_rag
 
             for f in findings:
-                chunks = project_rag._chunk_text(f["content"])
-                for idx, ch in enumerate(chunks):
-                    emb = project_rag._embed_text(ch)
-                    project_rag._IN_MEMORY_VAULT.append(
-                        project_rag.MemoryChunk(
-                            path=f"web://{f['title'].replace(' ', '_')}",
-                            chunk_index=idx,
-                            content=ch,
-                            embedding=emb,
-                            domain="general",
-                        )
-                    )
-                    indexed_chunks += 1
+                uri = f"web://{f['title'].replace(' ', '_')}"
+                indexed_chunks += project_rag.index_text_block(uri, f["content"], domain="general")
         except Exception:
             pass
 
