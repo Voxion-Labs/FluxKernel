@@ -2,9 +2,29 @@
   "schema_version": "1.0.0",
   "repository": "Voxion-Labs/FluxKernel",
   "description": "Autonomous commit metadata ledger and release audit tracker",
-  "last_updated": "2026-11-19T11:44:38.536806+00:00",
-  "total_commits_tracked": 23,
+  "last_updated": "2026-11-19T11:57:24.556334+00:00",
+  "total_commits_tracked": 24,
   "commits": [
+    {
+      "sha": "a5ae16d4e3434e9ac73aa94d14c24e39d605b957",
+      "branch": "main",
+      "message": "refactor(learning): upgrade to neural-semantic architecture (Alternative 3), purge static keyword lists",
+      "author": {
+        "name": "R-Jena",
+        "email": "rudrajena440@gmail.com",
+        "actor": "R-Jena"
+      },
+      "timestamp": "2026-11-19T17:27:17+05:30",
+      "commit_url": "https://github.com/Voxion-Labs/FluxKernel/commit/a5ae16d4e3434e9ac73aa94d14c24e39d605b957",
+      "run_id": "44519399762",
+      "files_modified": [
+        "engine/app/core/project_rag.py",
+        "engine/app/tools/chat_ingestor.py",
+        "engine/app/tools/feedback_learner.py",
+        "engine/tests/test_feedback_learner.py"
+      ],
+      "recorded_at": "2026-11-19T11:57:24.556028+00:00"
+    },
     {
       "sha": "1422360a097c5fb19b7db89abe59a0039fdc1a77",
       "branch": "main",
