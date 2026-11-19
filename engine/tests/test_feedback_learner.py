@@ -33,28 +33,33 @@ def _reset():
 
 
 def test_rule_creation_and_domain_inference():
-    """Verify automatic classification of domain and category via C++ SIMD semantic anchors."""
+    """Verify sovereign rule creation and default domain/category fallbacks."""
     _reset()
 
-    # Tech rule (forbidden pattern)
+    # Explicit domain & category
     rule1 = add_learned_rule(
-        directive="Never use Axios or Node-fetch; always use Go net/http or Python urllib standard library."
+        directive="Never use Axios or Node-fetch; always use Go net/http or Python urllib standard library.",
+        domain="tech",
+        category="forbidden_pattern",
     )
     assert rule1.domain == "tech"
     assert rule1.category == "forbidden_pattern"
 
     # Finance rule
     rule2 = add_learned_rule(
-        directive="In financial trading models and Black-Scholes pricing, assume 252 trading days per year."
+        directive="In financial trading models and Black-Scholes pricing, assume 252 trading days per year.",
+        domain="finance",
+        category="domain_guideline",
     )
     assert rule2.domain == "finance"
     assert rule2.category == "domain_guideline"
 
-    # Science rule
+    # Science rule defaulting to general when unspecified
     rule3 = add_learned_rule(
         directive="Ensure energy conservation when integrating Hamiltonian equations in quantum mechanics."
     )
-    assert rule3.domain == "science"
+    assert rule3.domain == "general"
+    assert rule3.category == "general"
 
     rules = list_learned_rules()
     assert len(rules) == 3

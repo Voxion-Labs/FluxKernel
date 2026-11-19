@@ -21,30 +21,6 @@ from app.tools.file_manager import WORKSPACE_DIR
 # Path for optional local persistent store of sovereign rules
 _RULES_FILE = WORKSPACE_DIR / ".flux_rules.json"
 
-# Semantic category anchor concepts for C++ SIMD Vector Dot Product projection
-_CATEGORY_ANCHORS = {
-    "forbidden_pattern": (
-        "prohibited forbidden disallowed avoid stop prevent never reject "
-        "anti-pattern do not use bad practice dangerous deprecated"
-    ),
-    "coding_style": (
-        "coding style formatting conventions indentation camelCase snake_case "
-        "spaces tabs naming syntax readability structure comments"
-    ),
-    "architecture": (
-        "software architecture modular design system layer interfaces "
-        "dependencies boundaries components separation of concerns design patterns"
-    ),
-    "workflow": (
-        "development workflow testing tdd git commits snapshots branches "
-        "verification rollback deployment continuous integration automated tests"
-    ),
-    "domain_guideline": (
-        "business logic domain rules calculation formulas operational principles "
-        "compliance guidelines financial accounting scientific precision assume days year trading model"
-    ),
-}
-
 
 @dataclass
 class LearnedRule:
@@ -72,21 +48,11 @@ def _slugify(text: str, max_length: int = 24) -> str:
     return slug[:max_length] or "rule"
 
 
-def _infer_rule_domain(text: str) -> str:
-    """Classifies rule domain using C++ SIMD vector dot product against anchor embeddings."""
-    return project_rag.classify_semantic_domain(text)
-
-
-def _infer_rule_category(text: str) -> str:
-    """Classifies rule category using C++ SIMD vector dot product against category anchor embeddings."""
-    return project_rag.classify_semantic_category(text, _CATEGORY_ANCHORS)
-
-
 async def distill_rule_with_llm(user_input: str, context: str | None = None) -> dict[str, str]:
     """
     Uses the native LLM Router (Ollama / Gemini / Claude) to extract the core sovereign
     behavioral rule, domain, and category with zero keyword heuristics.
-    Falls back gracefully to C++ SIMD semantic vector anchors when offline.
+    Falls back gracefully when offline.
     """
     try:
         from app.core.llm_router import route_prompt
@@ -111,17 +77,16 @@ async def distill_rule_with_llm(user_input: str, context: str | None = None) -> 
             if "directive" in data:
                 return {
                     "directive": str(data.get("directive", user_input)),
-                    "domain": str(data.get("domain", _infer_rule_domain(user_input))),
-                    "category": str(data.get("category", _infer_rule_category(user_input))),
+                    "domain": str(data.get("domain", "general")),
+                    "category": str(data.get("category", "general")),
                 }
     except Exception:
         pass
 
-    # Neural C++ SIMD Vector Cosine Anchor Fallback
     return {
         "directive": user_input.strip(),
-        "domain": _infer_rule_domain(user_input),
-        "category": _infer_rule_category(user_input),
+        "domain": "general",
+        "category": "general",
     }
 
 
@@ -160,14 +125,13 @@ def add_learned_rule(
     """
     Registers a new behavioral rule, indexes it into C++ SIMD vector memory,
     and persists it locally.
-    Uses C++ SIMD Semantic Anchor classification if domain/category are not explicitly supplied.
     """
     clean_directive = directive.strip()
     if not clean_directive:
         raise ValueError("Rule directive cannot be empty.")
 
-    dom = domain or _infer_rule_domain(clean_directive)
-    cat = category or _infer_rule_category(clean_directive)
+    dom = domain or "general"
+    cat = category or "general"
 
     rule_slug = _slugify(clean_directive)
     timestamp_suffix = hex(int(datetime.now(timezone.utc).timestamp()))[2:]

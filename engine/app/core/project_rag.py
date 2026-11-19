@@ -120,9 +120,7 @@ def infer_domain(path_str: str) -> str:
         return "science"
     if ext in {".csv", ".tsv", ".json"}:
         return "finance"
-    if ext in {".md", ".txt", ".doc", ".docx", ".pdf", ".rtf", ".log"}:
-        return "general"
-    return classify_semantic_domain(path_str)
+    return "general"
 
 
 @dataclass
@@ -191,82 +189,6 @@ def _embed_text(text: str) -> list[float]:
 def _cosine_similarity(left: list[float], right: list[float]) -> float:
     """Compute cosine similarity via bare-metal C++20 SIMD AVX2 vector dot product."""
     return vector_dot_product(left, right)
-
-
-# Semantic domain anchor vectors in 384-dimensional space
-_DOMAIN_ANCHORS: dict[str, list[float]] = {}
-
-
-def _get_domain_anchors() -> dict[str, list[float]]:
-    global _DOMAIN_ANCHORS
-    if not _DOMAIN_ANCHORS:
-        _DOMAIN_ANCHORS = {
-            "tech": _embed_text(
-                "software engineering compiler systems source code programming language "
-                "algorithm data structures concurrency networking linux kernel api git http "
-                "memory leak debug thread runtime function class struct endpoint backend"
-            ),
-            "finance": _embed_text(
-                "financial economics accounting assets capital markets balance sheet "
-                "option valuation portfolio risk cash flow ebitda yield equity returns "
-                "arbitrage debt treasury bond trading sharpe revenue ledger margin profit"
-            ),
-            "science": _embed_text(
-                "physics theoretical mathematics chemistry scientific experimentation "
-                "calculus equation differential quantum hamiltonian mechanics thermodynamics "
-                "molecules particles atoms velocity acceleration wave function eigenvalue"
-            ),
-            "general": _embed_text(
-                "general inquiry communication documentation daily planning organization "
-                "lifestyle tasks overview summary notes conversation dialog"
-            ),
-        }
-    return _DOMAIN_ANCHORS
-
-
-def classify_semantic_domain(text: str) -> str:
-    """
-    Classifies arbitrary text into its sovereign domain archetype using bare-metal
-    C++ AVX2 SIMD vector dot products against dense domain anchor embeddings.
-    Zero brittle hardcoded keyword lists.
-    """
-    if not text.strip():
-        return "general"
-
-    vec = _embed_text(text)
-    anchors = _get_domain_anchors()
-    best_domain = "general"
-    best_score = -1.0
-
-    for domain, anchor in anchors.items():
-        score = _cosine_similarity(vec, anchor)
-        if score > best_score:
-            best_score = score
-            best_domain = domain
-
-    return best_domain
-
-
-def classify_semantic_category(text: str, category_anchors: dict[str, str]) -> str:
-    """
-    Classifies text into the closest category using C++ SIMD vector dot product
-    against dynamic concept anchor embeddings.
-    """
-    if not text.strip() or not category_anchors:
-        return "general"
-
-    vec = _embed_text(text)
-    best_cat = next(iter(category_anchors))
-    best_score = -1.0
-
-    for cat_name, anchor_text in category_anchors.items():
-        anchor_vec = _embed_text(anchor_text)
-        score = _cosine_similarity(vec, anchor_vec)
-        if score > best_score:
-            best_score = score
-            best_cat = cat_name
-
-    return best_cat
 
 
 def _relative_workspace_path(path: Path) -> str:

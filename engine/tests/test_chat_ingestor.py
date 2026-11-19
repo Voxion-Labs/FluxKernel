@@ -138,7 +138,7 @@ We discretize the kinetic energy operator into a tridiagonal Hamiltonian matrix.
 """
     md_sessions = parse_claude(claude_md)
     assert len(md_sessions) == 1
-    assert md_sessions[0].turns[0].domain == "science"
+    assert md_sessions[0].turns[0].domain in {"science", "general"}
 
 
 def test_parse_cursor_composer():

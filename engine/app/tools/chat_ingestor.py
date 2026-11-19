@@ -114,10 +114,6 @@ def _infer_turn_domain(prompt: str, response: str, snippets: list[ExtractedCode]
         if s.lang in fin_langs:
             return "finance"
 
-    # Neural C++ SIMD Vector Cosine Classification (Zero Hardcoded Keywords)
-    combined = f"{prompt}\n{response}"
-    return project_rag.classify_semantic_domain(combined)
-
     return "general"
 
 
