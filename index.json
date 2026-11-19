@@ -2,9 +2,37 @@
   "schema_version": "1.0.0",
   "repository": "Voxion-Labs/FluxKernel",
   "description": "Autonomous commit metadata ledger and release audit tracker",
-  "last_updated": "2026-11-19T11:29:05.743461+00:00",
-  "total_commits_tracked": 22,
+  "last_updated": "2026-11-19T11:44:38.536806+00:00",
+  "total_commits_tracked": 23,
   "commits": [
+    {
+      "sha": "1422360a097c5fb19b7db89abe59a0039fdc1a77",
+      "branch": "main",
+      "message": "feat(learning): implement episodic feedback & sovereign rule-learning engine",
+      "author": {
+        "name": "R-Jena",
+        "email": "rudrajena440@gmail.com",
+        "actor": "R-Jena"
+      },
+      "timestamp": "2026-11-19T17:14:22+05:30",
+      "commit_url": "https://github.com/Voxion-Labs/FluxKernel/commit/1422360a097c5fb19b7db89abe59a0039fdc1a77",
+      "run_id": "44517500845",
+      "files_modified": [
+        ".github/workflows/ci.yml",
+        "engine/app/api/routes/feedback.py",
+        "engine/app/core/agentic_loop.py",
+        "engine/app/core/persona_engine.py",
+        "engine/app/main.py",
+        "engine/app/tools/feedback_learner.py",
+        "engine/tests/test_feedback_learner.py",
+        "gateway/internal/proxy/proxy.go",
+        "gateway/internal/ui/templates/dashboard.html",
+        "gateway/internal/ui/ui.go",
+        "gateway/internal/ui/ui_test.go",
+        "ops.ps1"
+      ],
+      "recorded_at": "2026-11-19T11:44:38.536645+00:00"
+    },
     {
       "sha": "98ddb2f90bbf6b0d76c2f8d45322b1fec692887b",
       "branch": "main",
