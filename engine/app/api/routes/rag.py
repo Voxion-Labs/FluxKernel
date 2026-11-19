@@ -51,22 +51,34 @@ class RAGStatusResponse(BaseModel):
 @router.get("/status", response_model=RAGStatusResponse)
 def get_rag_status(db: Session = Depends(get_db)):
     """Return status and telemetry of the C++ SIMD Semantic Memory Vault."""
-    total_pins = db.query(ProjectPin).count()
-    chunks = db.query(ProjectDocumentChunk).all()
+    try:
+        total_pins = db.query(ProjectPin).count()
+        chunks = db.query(ProjectDocumentChunk).all()
 
-    domains: dict[str, int] = {}
-    for chunk in chunks:
-        from app.core.project_rag import infer_domain
+        domains: dict[str, int] = {}
+        for chunk in chunks:
+            from app.core.project_rag import infer_domain
 
-        dom = infer_domain(chunk.path)
-        domains[dom] = domains.get(dom, 0) + 1
+            dom = infer_domain(chunk.path)
+            domains[dom] = domains.get(dom, 0) + 1
 
-    return RAGStatusResponse(
-        total_pinned_files=total_pins,
-        total_chunks=len(chunks),
-        simd_accelerated=_IS_NATIVE_LOADED,
-        domains=domains,
-    )
+        return RAGStatusResponse(
+            total_pinned_files=total_pins,
+            total_chunks=len(chunks),
+            simd_accelerated=_IS_NATIVE_LOADED,
+            domains=domains,
+        )
+    except Exception:
+        # Fallback to in-memory vault stats if database tables are uninitialized
+        from app.core.project_rag import get_vault_stats
+
+        st = get_vault_stats()
+        return RAGStatusResponse(
+            total_pinned_files=st.get("workspace_chunks", 0),
+            total_chunks=st.get("total_chunks", 0),
+            simd_accelerated=_IS_NATIVE_LOADED,
+            domains=st.get("domains", {}),
+        )
 
 
 @router.post("/index")

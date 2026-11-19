@@ -11,10 +11,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import autopilot, chat, files, history, learning, personas, rag, tasks, web
 from app.database.connection import Base, engine
 
+# Eagerly initialize SQLite/DB tables on import for testing & standalone clients
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception:
+    pass
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception:
+        pass
     yield
 
 

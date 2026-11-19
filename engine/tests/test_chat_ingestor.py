@@ -202,38 +202,43 @@ def test_fastapi_learning_api():
     try:
         from fastapi.testclient import TestClient
 
+        from app.database.connection import Base, engine
         from app.main import app
 
-        client = TestClient(app)
+        try:
+            Base.metadata.create_all(bind=engine)
+        except Exception:
+            pass
 
-        # Ingest payload
-        payload = {
-            "source": "markdown",
-            "raw_content": "# Algorithmic Trading Bot\nUser:\nHow do we calculate Sharpe ratio and CAGR?\nAssistant:\nSharpe ratio is (Expected Return - Risk Free Rate) / Volatility.\n```python\ndef sharpe(returns, rf=0.02):\n    return (returns.mean() - rf) / returns.std()\n```",
-        }
-        resp = client.post("/api/v1/learning/ingest", json=payload)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["status"] == "success"
-        assert data["sessions_processed"] == 1
-        assert data["total_turns_memorized"] == 1
-        assert data["total_code_snippets"] == 1
+        with TestClient(app) as client:
+            # Ingest payload
+            payload = {
+                "source": "markdown",
+                "raw_content": "# Algorithmic Trading Bot\nUser:\nHow do we calculate Sharpe ratio and CAGR?\nAssistant:\nSharpe ratio is (Expected Return - Risk Free Rate) / Volatility.\n```python\ndef sharpe(returns, rf=0.02):\n    return (returns.mean() - rf) / returns.std()\n```",
+            }
+            resp = client.post("/api/v1/learning/ingest", json=payload)
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["status"] == "success"
+            assert data["sessions_processed"] == 1
+            assert data["total_turns_memorized"] == 1
+            assert data["total_code_snippets"] == 1
 
-        # Status check
-        status_resp = client.get("/api/v1/learning/status")
-        assert status_resp.status_code == 200
-        s_data = status_resp.json()
-        assert s_data["total_sessions"] >= 1
-        assert s_data["total_turns_memorized"] >= 1
+            # Status check
+            status_resp = client.get("/api/v1/learning/status")
+            assert status_resp.status_code == 200
+            s_data = status_resp.json()
+            assert s_data["total_sessions"] >= 1
+            assert s_data["total_turns_memorized"] >= 1
 
-        # Clear check
-        clear_resp = client.post("/api/v1/learning/clear")
-        assert clear_resp.status_code == 200
-        assert clear_resp.json()["status"] == "cleared"
+            # Clear check
+            clear_resp = client.post("/api/v1/learning/clear")
+            assert clear_resp.status_code == 200
+            assert clear_resp.json()["status"] == "cleared"
 
-        # Verify cleared status
-        status_after = client.get("/api/v1/learning/status").json()
-        assert status_after["total_sessions"] == 0
+            # Verify cleared status
+            status_after = client.get("/api/v1/learning/status").json()
+            assert status_after["total_sessions"] == 0
     except ImportError:
         pass
 

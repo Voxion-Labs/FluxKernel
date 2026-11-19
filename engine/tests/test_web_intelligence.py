@@ -55,26 +55,32 @@ def test_web_api_endpoints():
     """Verify FastAPI /api/v1/web/search and /research endpoints."""
     try:
         from fastapi.testclient import TestClient
+
+        from app.database.connection import Base, engine
         from app.main import app
 
-        client = TestClient(app)
+        try:
+            Base.metadata.create_all(bind=engine)
+        except Exception:
+            pass
 
-        # Search endpoint
-        res = client.post("/api/v1/web/search", json={"query": "Algorithms", "max_results": 2})
-        assert res.status_code == 200
-        data = res.json()
-        assert data["query"] == "Algorithms"
-        assert len(data["results"]) > 0
+        with TestClient(app) as client:
+            # Search endpoint
+            res = client.post("/api/v1/web/search", json={"query": "Algorithms", "max_results": 2})
+            assert res.status_code == 200
+            data = res.json()
+            assert data["query"] == "Algorithms"
+            assert len(data["results"]) > 0
 
-        # Research endpoint
-        res_res = client.post(
-            "/api/v1/web/research",
-            json={"query": "Linear Algebra", "max_sources": 1, "auto_cache_rag": True},
-        )
-        assert res_res.status_code == 200
-        data_res = res_res.json()
-        assert data_res["query"] == "Linear Algebra"
-        assert data_res["cached_to_simd_vault"] is True
+            # Research endpoint
+            res_res = client.post(
+                "/api/v1/web/research",
+                json={"query": "Linear Algebra", "max_sources": 1, "auto_cache_rag": True},
+            )
+            assert res_res.status_code == 200
+            data_res = res_res.json()
+            assert data_res["query"] == "Linear Algebra"
+            assert data_res["cached_to_simd_vault"] is True
     except ImportError:
         pass
 

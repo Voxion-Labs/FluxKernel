@@ -116,27 +116,33 @@ def test_rag_api_endpoints():
     """Verify FastAPI /api/v1/rag endpoints."""
     try:
         from fastapi.testclient import TestClient
+
+        from app.database.connection import Base, engine
         from app.main import app
 
-        client = TestClient(app)
+        try:
+            Base.metadata.create_all(bind=engine)
+        except Exception:
+            pass
 
-        # Status check
-        res = client.get("/api/v1/rag/status")
-        assert res.status_code == 200
-        data = res.json()
-        assert "total_pinned_files" in data
-        assert "simd_accelerated" in data
+        with TestClient(app) as client:
+            # Status check
+            res = client.get("/api/v1/rag/status")
+            assert res.status_code == 200
+            data = res.json()
+            assert "total_pinned_files" in data
+            assert "simd_accelerated" in data
 
-        # Search endpoint
-        search_payload = {
-            "query": "FluxKernel sovereign architecture",
-            "limit": 3,
-        }
-        res_search = client.post("/api/v1/rag/search", json=search_payload)
-        assert res_search.status_code == 200
-        search_data = res_search.json()
-        assert search_data["query"] == "FluxKernel sovereign architecture"
-        assert "simd_accelerated" in search_data
+            # Search endpoint
+            search_payload = {
+                "query": "FluxKernel sovereign architecture",
+                "limit": 3,
+            }
+            res_search = client.post("/api/v1/rag/search", json=search_payload)
+            assert res_search.status_code == 200
+            search_data = res_search.json()
+            assert search_data["query"] == "FluxKernel sovereign architecture"
+            assert "simd_accelerated" in search_data
     except ImportError:
         pass
 
