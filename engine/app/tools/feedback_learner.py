@@ -1,11 +1,10 @@
 """
-Episodic Feedback & Rule-Learning Engine for FluxKernel.
+Episodic Feedback & Rule-Learning Engine for FluxKernel (Alternative 3: Neural-Semantic).
 
 Learns user habits, forbidden patterns, domain rules, and coding preferences
-from direct user feedback, diff rejections, and explicit instructions.
-Indexes distilled rules into the C++ SIMD Vector Vault and dynamically
-injects active rules into the Agentic Planner, Coder, and Personas
-with ZERO GPU fine-tuning overhead, ZERO external dependencies, and ZERO Git bloat.
+using LLM Zero-Shot Intent Distillation and pure C++ SIMD AVX2 Cosine Vector Retrieval.
+Completely eliminates brittle hardcoded keyword lists.
+ZERO GPU fine-tuning overhead, ZERO external dependencies, and ZERO Git bloat.
 """
 
 from __future__ import annotations
@@ -21,6 +20,30 @@ from app.tools.file_manager import WORKSPACE_DIR
 
 # Path for optional local persistent store of sovereign rules
 _RULES_FILE = WORKSPACE_DIR / ".flux_rules.json"
+
+# Semantic category anchor concepts for C++ SIMD Vector Dot Product projection
+_CATEGORY_ANCHORS = {
+    "forbidden_pattern": (
+        "prohibited forbidden disallowed avoid stop prevent never reject "
+        "anti-pattern do not use bad practice dangerous deprecated"
+    ),
+    "coding_style": (
+        "coding style formatting conventions indentation camelCase snake_case "
+        "spaces tabs naming syntax readability structure comments"
+    ),
+    "architecture": (
+        "software architecture modular design system layer interfaces "
+        "dependencies boundaries components separation of concerns design patterns"
+    ),
+    "workflow": (
+        "development workflow testing tdd git commits snapshots branches "
+        "verification rollback deployment continuous integration automated tests"
+    ),
+    "domain_guideline": (
+        "business logic domain rules calculation formulas operational principles "
+        "compliance guidelines financial accounting scientific precision assume days year trading model"
+    ),
+}
 
 
 @dataclass
@@ -50,117 +73,56 @@ def _slugify(text: str, max_length: int = 24) -> str:
 
 
 def _infer_rule_domain(text: str) -> str:
-    lower = text.lower()
-    fin_keywords = [
-        "finance",
-        "trading",
-        "stock",
-        "ebitda",
-        "p&l",
-        "portfolio",
-        "black-scholes",
-        "yield",
-        "roi",
-        "cagr",
-        "dividend",
-        "balance sheet",
-    ]
-    sci_keywords = [
-        "physics",
-        "quantum",
-        "chemistry",
-        "hamiltonian",
-        "schrodinger",
-        "derivative",
-        "integral",
-        "energy",
-        "equation",
-        "molecule",
-    ]
-    tech_keywords = [
-        "code",
-        "golang",
-        "go",
-        "python",
-        "c++",
-        "simd",
-        "api",
-        "docker",
-        "test",
-        "compiler",
-        "http",
-        "git",
-        "database",
-        "function",
-        "struct",
-        "class",
-    ]
-
-    for kw in fin_keywords:
-        if kw in lower:
-            return "finance"
-    for kw in sci_keywords:
-        if kw in lower:
-            return "science"
-    for kw in tech_keywords:
-        if kw in lower:
-            return "tech"
-    return "general"
+    """Classifies rule domain using C++ SIMD vector dot product against anchor embeddings."""
+    return project_rag.classify_semantic_domain(text)
 
 
 def _infer_rule_category(text: str) -> str:
-    lower = text.lower()
-    if any(
-        k in lower for k in ["never", "don't", "avoid", "stop", "do not", "forbidden", "disallow"]
-    ):
-        return "forbidden_pattern"
-    if any(
-        k in lower
-        for k in [
-            "style",
-            "format",
-            "convention",
-            "indent",
-            "snake_case",
-            "camelcase",
-            "tabs",
-            "spaces",
-        ]
-    ):
-        return "coding_style"
-    if any(
-        k in lower
-        for k in ["architecture", "layer", "interface", "design", "pattern", "clean arch", "mvc"]
-    ):
-        return "architecture"
-    if any(k in lower for k in ["workflow", "git", "commit", "test first", "tdd", "snapshot"]):
-        return "workflow"
-    return "domain_guideline"
+    """Classifies rule category using C++ SIMD vector dot product against category anchor embeddings."""
+    return project_rag.classify_semantic_category(text, _CATEGORY_ANCHORS)
 
 
-def _extract_keywords(text: str) -> list[str]:
-    words = re.findall(r"\b[a-zA-Z0-9_-]{3,}\b", text.lower())
-    stop_words = {
-        "the",
-        "and",
-        "for",
-        "with",
-        "that",
-        "this",
-        "from",
-        "when",
-        "always",
-        "never",
-        "should",
-        "must",
-        "have",
-        "been",
+async def distill_rule_with_llm(user_input: str, context: str | None = None) -> dict[str, str]:
+    """
+    Uses the native LLM Router (Ollama / Gemini / Claude) to extract the core sovereign
+    behavioral rule, domain, and category with zero keyword heuristics.
+    Falls back gracefully to C++ SIMD semantic vector anchors when offline.
+    """
+    try:
+        from app.core.llm_router import route_prompt
+
+        prompt = (
+            f'Analyze this user feedback or correction:\n"{user_input}"\n'
+            f"Context: {context or 'None'}\n\n"
+            "Distill into a JSON object with keys:\n"
+            "- directive: concise imperative rule statement\n"
+            "- category: one of [forbidden_pattern, coding_style, architecture, domain_guideline, workflow]\n"
+            "- domain: one of [tech, science, finance, general]\n"
+            "Return ONLY valid JSON."
+        )
+        res = await route_prompt(
+            prompt,
+            system_prompt="You are an expert AI governance auditor.",
+            model_override="small",
+        )
+        cleaned = re.search(r"\{.*?\}", res, re.DOTALL)
+        if cleaned:
+            data = json.loads(cleaned.group(0))
+            if "directive" in data:
+                return {
+                    "directive": str(data.get("directive", user_input)),
+                    "domain": str(data.get("domain", _infer_rule_domain(user_input))),
+                    "category": str(data.get("category", _infer_rule_category(user_input))),
+                }
+    except Exception:
+        pass
+
+    # Neural C++ SIMD Vector Cosine Anchor Fallback
+    return {
+        "directive": user_input.strip(),
+        "domain": _infer_rule_domain(user_input),
+        "category": _infer_rule_category(user_input),
     }
-    unique = []
-    for w in words:
-        if w not in stop_words and w not in unique:
-            unique.append(w)
-    return unique[:8]
 
 
 def load_rules_from_disk() -> None:
@@ -198,6 +160,7 @@ def add_learned_rule(
     """
     Registers a new behavioral rule, indexes it into C++ SIMD vector memory,
     and persists it locally.
+    Uses C++ SIMD Semantic Anchor classification if domain/category are not explicitly supplied.
     """
     clean_directive = directive.strip()
     if not clean_directive:
@@ -205,7 +168,6 @@ def add_learned_rule(
 
     dom = domain or _infer_rule_domain(clean_directive)
     cat = category or _infer_rule_category(clean_directive)
-    kws = trigger_keywords or _extract_keywords(clean_directive)
 
     rule_slug = _slugify(clean_directive)
     timestamp_suffix = hex(int(datetime.now(timezone.utc).timestamp()))[2:]
@@ -216,12 +178,12 @@ def add_learned_rule(
         directive=clean_directive,
         category=cat,
         domain=dom,
-        trigger_keywords=kws,
+        trigger_keywords=trigger_keywords or [],
         confidence=1.0,
         source=source,
     )
 
-    # Prevent duplicate identical directives
+    # Prevent duplicate identical directives (boost confidence if repeated)
     for existing in _RULES_REGISTRY:
         if existing.directive.lower() == clean_directive.lower():
             existing.confidence = min(5.0, existing.confidence + 0.5)
@@ -239,7 +201,6 @@ def add_learned_rule(
                 f"# Sovereign Behavioral Rule: {rule_id}\n"
                 f"Category: {cat} | Domain: {dom} | Source: {source}\n"
                 f"Directive: {clean_directive}\n"
-                f"Triggers: {', '.join(kws)}\n"
             )
             project_rag.index_text_block(
                 uri=f"rules://{dom}/{rule_id}.{cat}",
@@ -308,46 +269,44 @@ def list_learned_rules(category: str | None = None, domain: str | None = None) -
 def get_matching_rules(prompt: str, domain: str | None = None, limit: int = 5) -> list[LearnedRule]:
     """
     Retrieves the most relevant learned rules for an incoming prompt.
-    Combines C++ SIMD semantic vector retrieval with keyword trigger matching.
+    Powered 100% by C++ SIMD Vector Cosine Semantic Distance in high-dimensional embedding space.
+    Zero hardcoded keyword lists.
     """
     if not _RULES_REGISTRY:
         return []
 
-    prompt_lower = prompt.lower()
+    prompt_vec = project_rag._embed_text(prompt)
     scored_rules: dict[str, tuple[float, LearnedRule]] = {}
 
-    # 1. Fast Keyword matching
+    # 1. Direct C++ SIMD Cosine Semantic Ranking across all active rules
     for rule in _RULES_REGISTRY:
         if domain and domain.lower() != "all" and rule.domain != domain.lower():
             continue
 
-        match_count = sum(1 for kw in rule.trigger_keywords if kw in prompt_lower)
-        if match_count > 0:
-            score = (match_count * 1.5) + rule.confidence
-            scored_rules[rule.rule_id] = (score, rule)
+        rule_vec = project_rag._embed_text(rule.directive)
+        sim_score = project_rag._cosine_similarity(prompt_vec, rule_vec)
+        if sim_score > 0.05:
+            accumulated = (sim_score * 3.0) * rule.confidence
+            scored_rules[rule.rule_id] = (accumulated, rule)
 
-    # 2. C++ SIMD Vector Vault retrieval fallback / boost
+    # 2. C++ SIMD Vector Memory Vault Semantic Context Retrieval
     try:
         chunks = project_rag.retrieve_context(query=prompt, limit=10, domain_filter=domain)
         for chunk in chunks:
             if chunk.path.startswith("rules://"):
-                # Extract rule_id from path
-                # Path format: rules://<domain>/<rule_id>.<cat>
                 parts = chunk.path.split("/")
                 if len(parts) >= 3:
                     file_part = parts[-1].split(".")[0]
                     for r in _RULES_REGISTRY:
                         if r.rule_id == file_part or file_part in r.rule_id:
                             current_score = scored_rules.get(r.rule_id, (0.0, r))[0]
-                            scored_rules[r.rule_id] = (current_score + (chunk.score * 2.0), r)
+                            scored_rules[r.rule_id] = (current_score + (chunk.score * 2.5), r)
     except Exception:
         pass
 
-    # Sort rules by accumulated relevance score
     sorted_items = sorted(scored_rules.values(), key=lambda x: x[0], reverse=True)
     matched = [item[1] for item in sorted_items[:limit]]
 
-    # Increment hit count on matched rules
     for r in matched:
         r.hit_count += 1
     if matched:

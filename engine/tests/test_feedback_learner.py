@@ -33,7 +33,7 @@ def _reset():
 
 
 def test_rule_creation_and_domain_inference():
-    """Verify automatic classification of domain, category, and keyword extraction."""
+    """Verify automatic classification of domain and category via C++ SIMD semantic anchors."""
     _reset()
 
     # Tech rule (forbidden pattern)
@@ -42,7 +42,6 @@ def test_rule_creation_and_domain_inference():
     )
     assert rule1.domain == "tech"
     assert rule1.category == "forbidden_pattern"
-    assert "axios" in rule1.trigger_keywords
 
     # Finance rule
     rule2 = add_learned_rule(
@@ -50,14 +49,12 @@ def test_rule_creation_and_domain_inference():
     )
     assert rule2.domain == "finance"
     assert rule2.category == "domain_guideline"
-    assert "trading" in rule2.trigger_keywords
 
     # Science rule
     rule3 = add_learned_rule(
         directive="Ensure energy conservation when integrating Hamiltonian equations in quantum mechanics."
     )
     assert rule3.domain == "science"
-    assert "energy" in rule3.trigger_keywords
 
     rules = list_learned_rules()
     assert len(rules) == 3
@@ -71,14 +68,12 @@ def test_rule_matching_and_prompt_injection():
         directive="Never use Axios or Node-fetch; always use standard library http.Client in Go.",
         category="forbidden_pattern",
         domain="tech",
-        trigger_keywords=["axios", "fetch", "http", "api"],
     )
 
     add_learned_rule(
         directive="In corporate finance reports, compute EBITDA and Operating Cash Flow separately.",
         category="domain_guideline",
         domain="finance",
-        trigger_keywords=["ebitda", "finance", "cash", "reports"],
     )
 
     # Match tech prompt

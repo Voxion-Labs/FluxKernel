@@ -114,75 +114,9 @@ def _infer_turn_domain(prompt: str, response: str, snippets: list[ExtractedCode]
         if s.lang in fin_langs:
             return "finance"
 
-    combined = f"{prompt}\n{response}".lower()
-
-    fin_keywords = [
-        "ebitda",
-        "black-scholes",
-        "balance sheet",
-        "p&l",
-        "pnl",
-        "portfolio",
-        "roi",
-        "cagr",
-        "dividend",
-        "arbitrage",
-        "yield curve",
-        "cash flow",
-        "equity",
-        "derivatives",
-        "nasdaq",
-        "sp500",
-        "revenue",
-        "margin",
-    ]
-    sci_keywords = [
-        "hamiltonian",
-        "schrodinger",
-        "quantum",
-        "differential equation",
-        "integral",
-        "thermodynamics",
-        "kinetic",
-        "molecule",
-        "protein",
-        "dna",
-        "rna",
-        "einstein",
-        "physics",
-        "eigenvalue",
-        "matrix multiplication",
-    ]
-    tech_keywords = [
-        "function",
-        "class",
-        "compiler",
-        "api",
-        "docker",
-        "struct",
-        "simd",
-        "algorithm",
-        "database",
-        "http",
-        "git",
-        "linux",
-        "kernel",
-        "memory leak",
-        "thread",
-        "async",
-        "endpoint",
-        "route",
-    ]
-
-    for kw in fin_keywords:
-        if kw in combined:
-            return "finance"
-    for kw in sci_keywords:
-        if kw in combined:
-            return "science"
-    for kw in tech_keywords:
-        if kw in combined:
-            return "tech"
+    # Neural C++ SIMD Vector Cosine Classification (Zero Hardcoded Keywords)
+    combined = f"{prompt}\n{response}"
+    return project_rag.classify_semantic_domain(combined)
 
     return "general"
 
