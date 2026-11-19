@@ -214,9 +214,10 @@ class PersonaEngine:
         mode = normalize_mode(persona_name)
         attachments = attachments or []
 
+        resolved: ResolvedMode
         if mode is CognitiveMode.PROJECT:
             retrieved = retrieve_context(self.db, user_prompt, limit=6)
-            return ResolvedMode(
+            resolved = ResolvedMode(
                 mode=mode,
                 display_name=mode.value,
                 response_model=ProjectModeResponse,
@@ -229,18 +230,16 @@ class PersonaEngine:
                     base_system_prompt, retrieved, attachments
                 ),
             )
-
-        if mode is CognitiveMode.PLANNER:
-            return ResolvedMode(
+        elif mode is CognitiveMode.PLANNER:
+            resolved = ResolvedMode(
                 mode=mode,
                 display_name=mode.value,
                 response_model=PlannerModeResponse,
                 tools=MODE_TOOLSETS[mode],
                 system_prompt=self._build_planner_prompt(base_system_prompt),
             )
-
-        if mode is CognitiveMode.CODER:
-            return ResolvedMode(
+        elif mode is CognitiveMode.CODER:
+            resolved = ResolvedMode(
                 mode=mode,
                 display_name=mode.value,
                 response_model=CoderModeResponse,
@@ -248,9 +247,8 @@ class PersonaEngine:
                 metadata={"compiler_availability": check_compiler_availability()},
                 system_prompt=self._build_coder_prompt(base_system_prompt),
             )
-
-        if mode is CognitiveMode.DATA:
-            return ResolvedMode(
+        elif mode is CognitiveMode.DATA:
+            resolved = ResolvedMode(
                 mode=mode,
                 display_name=mode.value,
                 response_model=DataAnalysisPlan,
@@ -258,14 +256,26 @@ class PersonaEngine:
                 metadata={"attachments": [attachment.describe() for attachment in attachments]},
                 system_prompt=self._build_data_prompt(base_system_prompt, attachments),
             )
+        else:
+            resolved = ResolvedMode(
+                mode=CognitiveMode.STANDARD,
+                display_name=base_system_prompt or CognitiveMode.STANDARD.value,
+                response_model=None,
+                tools=[],
+                system_prompt=base_system_prompt,
+            )
 
-        return ResolvedMode(
-            mode=CognitiveMode.STANDARD,
-            display_name=base_system_prompt or CognitiveMode.STANDARD.value,
-            response_model=None,
-            tools=[],
-            system_prompt=base_system_prompt,
-        )
+        # Inject learned sovereign user rules and corrections dynamically
+        try:
+            from app.tools.feedback_learner import build_rules_prompt_block
+
+            rules_block = build_rules_prompt_block(user_prompt)
+            if rules_block:
+                resolved.system_prompt = f"{resolved.system_prompt}\n\n{rules_block}"
+        except Exception:
+            pass
+
+        return resolved
 
     def _build_project_prompt(
         self,

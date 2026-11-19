@@ -264,6 +264,65 @@
         </div>
         {{ end }}
       </div>
+
+      <!-- Episodic Rules & Dynamic Correction Engine -->
+      <div class="pane-header" style="margin-top: 16px; border-top: 1px solid var(--border);">
+        <span>Learned Sovereign Rules</span>
+        <span class="badge badge-warning" style="font-size: 10px;">{{ if .LearnedRules }}{{ len .LearnedRules }} rules{{ else }}Adaptive{{ end }}</span>
+      </div>
+      <div style="padding: 10px 8px;">
+        <form method="POST" action="/dashboard/rules/add" style="margin: 0;">
+          <input type="hidden" name="theme" value="{{ $.Theme }}">
+          <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+            <select name="domain" class="select-input" style="font-size: 10px; padding: 3px 4px; flex: 1;">
+              <option value="tech">Tech</option>
+              <option value="finance">Finance</option>
+              <option value="science">Science</option>
+              <option value="general">General</option>
+            </select>
+            <select name="category" class="select-input" style="font-size: 10px; padding: 3px 4px; flex: 1;">
+              <option value="forbidden_pattern">Forbidden Pattern</option>
+              <option value="coding_style">Coding Style</option>
+              <option value="architecture">Architecture</option>
+              <option value="domain_guideline">Domain Guideline</option>
+              <option value="workflow">Workflow</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 6px;">
+            <input type="text" name="directive" class="text-input" style="font-size: 11px; padding: 4px 6px; width: 100%; box-sizing: border-box;" placeholder="e.g. Never use Axios; always use standard library" required>
+          </div>
+          <button type="submit" class="btn-primary" style="font-size: 11px; padding: 4px 8px; width: 100%;">⚡ Add Learned Constraint ➔</button>
+        </form>
+
+        <!-- Active Rules List -->
+        {{ if .LearnedRules }}
+        <div style="margin-top: 10px;">
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">
+            Active Behavioral Rules ({{ len .LearnedRules }}):
+          </div>
+          {{ range .LearnedRules }}
+          <div class="snapshot-item" style="margin-bottom: 6px; padding: 6px 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3px;">
+              <div style="font-size: 11px; font-weight: 600; flex: 1; margin-right: 4px;">
+                {{ if eq .Category "forbidden_pattern" }}🚫{{ else if eq .Category "coding_style" }}🎨{{ else if eq .Category "architecture" }}🏛{{ else }}📌{{ end }}
+                {{ .Directive }}
+              </div>
+              <form method="POST" action="/dashboard/rules/delete" style="margin: 0;">
+                <input type="hidden" name="rule_id" value="{{ .RuleID }}">
+                <input type="hidden" name="theme" value="{{ $.Theme }}">
+                <button type="submit" class="btn-delete-file" style="padding: 1px 4px; font-size: 9px;" title="Remove learned rule">✕</button>
+              </form>
+            </div>
+            <div style="font-size: 9px; color: var(--text-muted);">
+              <span class="badge badge-neutral" style="font-size: 8px; text-transform: uppercase;">{{ .Domain }}</span>
+              <span class="badge badge-info" style="font-size: 8px;">{{ .Category }}</span>
+              {{ if gt .HitCount 0 }}<span style="color: var(--success); margin-left: 4px;">Applied: {{ .HitCount }}x</span>{{ end }}
+            </div>
+          </div>
+          {{ end }}
+        </div>
+        {{ end }}
+      </div>
     </div>
   </aside>
 

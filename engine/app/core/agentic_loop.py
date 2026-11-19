@@ -182,6 +182,16 @@ async def run_agentic_loop(
     current_prompt = _build_plan_prompt(initial_prompt)
     current_system = _PLAN_SYSTEM
 
+    # Dynamically inject learned user rules into Auto-Pilot planner
+    try:
+        from app.tools.feedback_learner import build_rules_prompt_block
+
+        rules_block = build_rules_prompt_block(initial_prompt)
+        if rules_block:
+            current_system = f"{_PLAN_SYSTEM}\n\n{rules_block}"
+    except Exception:
+        pass
+
     for iteration in range(1, state.max_iterations + 1):
         state.iteration = iteration
 

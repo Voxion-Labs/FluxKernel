@@ -123,6 +123,19 @@ type AILearningStatus struct {
 	RecentSessions      []AILearningSession `json:"recent_sessions"`
 }
 
+// LearnedRule represents an adaptive behavioral rule distilled from user feedback or diff rejection.
+type LearnedRule struct {
+	RuleID          string   `json:"rule_id"`
+	Directive       string   `json:"directive"`
+	Category        string   `json:"category"`
+	Domain          string   `json:"domain"`
+	TriggerKeywords []string `json:"trigger_keywords"`
+	Confidence      float64  `json:"confidence"`
+	Source          string   `json:"source"`
+	HitCount        int      `json:"hit_count"`
+	CreatedAt       string   `json:"created_at"`
+}
+
 // UIHandler manages server-side rendering of pure HTML/CSS templates (Zero-JS).
 type UIHandler struct {
 	cfg          *config.Config
@@ -292,6 +305,7 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 
 	ragStatus := h.fetchRAGStatus()
 	learningStatus := h.fetchAILearningStatus()
+	learnedRules := h.fetchLearnedRules()
 
 	data := map[string]interface{}{
 		"Title":             "FluxKernel — Enterprise Minimalist Console",
@@ -315,6 +329,7 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 		"WebHits":           webHitsCopy,
 		"WebBrief":          webBriefCopy,
 		"AILearning":        learningStatus,
+		"LearnedRules":      learnedRules,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -923,15 +938,37 @@ func (h *UIHandler) HandleDiffReject(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	if h.pendingDiffBatch != nil {
 		batchID := h.pendingDiffBatch.BatchID
+		var filesAffected []string
+		for _, f := range h.pendingDiffBatch.Files {
+			filesAffected = append(filesAffected, f.Path)
+		}
 		h.pendingDiffBatch.Status = "rejected"
 		h.pendingDiffBatch = nil
-		h.flashMessage = fmt.Sprintf("⚠ Diff Batch '%s' rejected. Workspace rolled back to %s.", batchID, latestSnapshotID)
+		h.flashMessage = fmt.Sprintf("⚠ Diff Batch '%s' rejected. Workspace rolled back to %s. Pattern recorded in learned rules.", batchID, latestSnapshotID)
 		h.flashType = "warning"
 		h.messages = append(h.messages, Message{
 			Role:      "system",
-			Content:   fmt.Sprintf("[DIFF REJECTED] Agentic mutations discarded. Reverted to snapshot %s.", latestSnapshotID),
+			Content:   fmt.Sprintf("[DIFF REJECTED] Agentic mutations discarded. Reverted to snapshot %s. Failure pattern memorized into C++ SIMD Vault.", latestSnapshotID),
 			Timestamp: time.Now().Format("15:04:05"),
 		})
+
+		// Notify feedback learner in background to avoid blocking
+		go func(bID string, fList []string) {
+			payload := map[string]interface{}{
+				"batch_id":       bID,
+				"reason":         "Rejected during human review",
+				"files_affected": fList,
+			}
+			b, _ := json.Marshal(payload)
+			req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/feedback/reject-diff", bytes.NewReader(b))
+			if err == nil {
+				req.Header.Set("Content-Type", "application/json")
+				resp, err := h.client.Do(req)
+				if err == nil && resp != nil {
+					_ = resp.Body.Close()
+				}
+			}
+		}(batchID, filesAffected)
 	}
 	h.mu.Unlock()
 
@@ -1622,6 +1659,114 @@ func (h *UIHandler) HandleAILearningClear(w http.ResponseWriter, r *http.Request
 	h.flashMessage = "Cross-AI learning memory registry cleared."
 	h.flashType = "flash-warning"
 	h.mu.Unlock()
+
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+func (h *UIHandler) fetchLearnedRules() []LearnedRule {
+	req, err := http.NewRequest(http.MethodGet, h.cfg.EngineURL+"/api/v1/feedback/rules", nil)
+	if err != nil {
+		return nil
+	}
+	resp, err := h.client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		return nil
+	}
+	defer resp.Body.Close()
+
+	var rules []LearnedRule
+	if err := json.NewDecoder(resp.Body).Decode(&rules); err != nil {
+		return nil
+	}
+	return rules
+}
+
+// HandleRuleAdd records a new sovereign behavioral preference or learned constraint.
+func (h *UIHandler) HandleRuleAdd(w http.ResponseWriter, r *http.Request) {
+	theme := r.FormValue("theme")
+	if theme == "" {
+		theme = r.URL.Query().Get("theme")
+	}
+	if theme == "" {
+		theme = "light"
+	}
+
+	directive := strings.TrimSpace(r.FormValue("directive"))
+	category := strings.TrimSpace(r.FormValue("category"))
+	domain := strings.TrimSpace(r.FormValue("domain"))
+
+	if directive == "" {
+		h.mu.Lock()
+		h.flashMessage = "Rule creation rejected: Directive cannot be empty."
+		h.flashType = "flash-danger"
+		h.mu.Unlock()
+		http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+		return
+	}
+
+	payload := map[string]interface{}{
+		"directive": directive,
+		"category":  category,
+		"domain":    domain,
+		"source":    "user_explicit",
+	}
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/feedback/record", bytes.NewReader(body))
+	if err == nil {
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := h.client.Do(req)
+		if err == nil && resp != nil {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				h.mu.Lock()
+				h.flashMessage = fmt.Sprintf("✓ Learned rule recorded: '%s'. Grounded in C++ SIMD Vault.", directive)
+				h.flashType = "flash-success"
+				h.messages = append(h.messages, Message{
+					Role:      "system",
+					Content:   fmt.Sprintf("[RULE LEARNED] Added directive: '%s'. Agent dynamically constrained.", directive),
+					Timestamp: time.Now().Format("15:04:05"),
+				})
+				h.mu.Unlock()
+				http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+				return
+			}
+		}
+	}
+
+	h.mu.Lock()
+	h.flashMessage = "Failed to record rule with engine."
+	h.flashType = "flash-danger"
+	h.mu.Unlock()
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+// HandleRuleDelete removes a learned rule from active memory.
+func (h *UIHandler) HandleRuleDelete(w http.ResponseWriter, r *http.Request) {
+	theme := r.FormValue("theme")
+	if theme == "" {
+		theme = r.URL.Query().Get("theme")
+	}
+	if theme == "" {
+		theme = "light"
+	}
+
+	ruleID := strings.TrimSpace(r.FormValue("rule_id"))
+	if ruleID != "" {
+		req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/api/v1/feedback/rules/%s", h.cfg.EngineURL, ruleID), nil)
+		if err == nil {
+			resp, err := h.client.Do(req)
+			if err == nil && resp != nil {
+				_ = resp.Body.Close()
+			}
+		}
+		h.mu.Lock()
+		h.flashMessage = fmt.Sprintf("Rule '%s' deleted.", ruleID)
+		h.flashType = "flash-warning"
+		h.mu.Unlock()
+	}
 
 	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
 }

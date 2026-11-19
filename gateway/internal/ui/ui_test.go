@@ -454,6 +454,49 @@ func TestUIHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("Episodic Learned Rules Add and Delete Form Dispatch", func(t *testing.T) {
+		// 1. Add rule with empty directive (should reject safely)
+		emptyForm := url.Values{}
+		emptyForm.Set("directive", "")
+		emptyForm.Set("theme", "light")
+		reqEmpty := httptest.NewRequest(http.MethodPost, "/dashboard/rules/add", strings.NewReader(emptyForm.Encode()))
+		reqEmpty.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recEmpty := httptest.NewRecorder()
+		h.HandleRuleAdd(recEmpty, reqEmpty)
+
+		if recEmpty.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on empty directive, got %d", recEmpty.Code)
+		}
+
+		// 2. Add rule with valid directive
+		validForm := url.Values{}
+		validForm.Set("directive", "Never use Axios; always use standard library")
+		validForm.Set("category", "forbidden_pattern")
+		validForm.Set("domain", "tech")
+		validForm.Set("theme", "light")
+		reqValid := httptest.NewRequest(http.MethodPost, "/dashboard/rules/add", strings.NewReader(validForm.Encode()))
+		reqValid.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recValid := httptest.NewRecorder()
+		h.HandleRuleAdd(recValid, reqValid)
+
+		if recValid.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on valid rule add, got %d", recValid.Code)
+		}
+
+		// 3. Delete rule dispatch
+		delForm := url.Values{}
+		delForm.Set("rule_id", "rule_tech_never_use_axios")
+		delForm.Set("theme", "light")
+		reqDel := httptest.NewRequest(http.MethodPost, "/dashboard/rules/delete", strings.NewReader(delForm.Encode()))
+		reqDel.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recDel := httptest.NewRecorder()
+		h.HandleRuleDelete(recDel, reqDel)
+
+		if recDel.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on rule delete, got %d", recDel.Code)
+		}
+	})
+
 	t.Run("Static Asset Delivery (CSS Only, Zero JS)", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/static/css/dashboard.css", nil)
 		rec := httptest.NewRecorder()
