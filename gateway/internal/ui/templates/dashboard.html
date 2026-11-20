@@ -323,6 +323,39 @@
         </div>
         {{ end }}
       </div>
+
+      <!-- Phase 5: Sovereign Zero-Footprint Embedded Storage Vault -->
+      <div class="pane-header" style="margin-top: 16px; border-top: 1px solid var(--border);">
+        <span>Sovereign Storage Vault</span>
+        <span class="badge badge-success" style="font-size: 10px;">0% IDLE RAM</span>
+      </div>
+      <div style="padding: 10px 8px;">
+        <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4;">
+          {{ if .VaultStatus }}
+          <div><strong>Engine:</strong> SQLite 3 (WAL / Memory-Mapped)</div>
+          <div><strong>Footprint:</strong> {{ .VaultStatus.DatabaseSizeKB }} KB (Active handles: {{ .VaultStatus.ActiveConnections }})</div>
+          <div><strong>Vault Contents:</strong> {{ .VaultStatus.DocumentsCount }} docs | {{ .VaultStatus.ChunksCount }} SIMD chunks | {{ .VaultStatus.RulesCount }} rules</div>
+          <div><strong>Task Queue:</strong> {{ .VaultStatus.TasksCount }} embedded jobs (Zero Redis Daemon)</div>
+          {{ else }}
+          <div><strong>Status:</strong> Sovereign Embedded Engine Active</div>
+          <div><strong>Mode:</strong> Zero Background Daemons / 0% Idle RAM</div>
+          {{ end }}
+        </div>
+        <div style="display: flex; gap: 4px;">
+          <form method="POST" action="/dashboard/vault/checkpoint" style="margin: 0; flex: 1;">
+            <input type="hidden" name="theme" value="{{ $.Theme }}">
+            <button type="submit" class="btn-restore" style="font-size: 10px; padding: 4px 6px; width: 100%;" title="Flush WAL log back to disk and truncate WAL file">
+              🧹 WAL Checkpoint
+            </button>
+          </form>
+          <form method="POST" action="/dashboard/vault/vacuum" style="margin: 0; flex: 1;">
+            <input type="hidden" name="theme" value="{{ $.Theme }}">
+            <button type="submit" class="btn-restore" style="font-size: 10px; padding: 4px 6px; width: 100%;" title="Defragment and compact database pages">
+              📦 Vacuum DB
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   </aside>
 

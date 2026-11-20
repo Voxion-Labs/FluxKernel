@@ -11,7 +11,6 @@ import asyncio
 import json
 from collections.abc import AsyncGenerator
 
-from celery.result import AsyncResult
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
@@ -24,23 +23,36 @@ _POLL_INTERVAL = 0.5  # seconds between Celery result polls
 
 def _serialize_result(task_id: str) -> dict:
     """
-    Convert a Celery AsyncResult into a JSON-serialisable status dict.
+    Convert a Celery or Embedded Vault task into a JSON-serialisable status dict.
     """
-    result: AsyncResult = AsyncResult(task_id, app=celery_app)
-    state = result.state  # PENDING | STARTED | SUCCESS | FAILURE | REVOKED
+    if task_id.startswith("task_"):
+        try:
+            from app.storage.vault import get_embedded_task_queue
 
-    payload: dict = {"task_id": task_id, "state": state}
+            return get_embedded_task_queue().get_task_state(task_id)
+        except Exception:
+            pass
 
-    if state == "SUCCESS":
-        payload.update(result.result or {})  # merges stdout/stderr/success/language
-    elif state == "FAILURE":
-        payload["stderr"] = str(result.result)
-        payload["success"] = False
-    elif state in ("PENDING", "STARTED"):
-        payload["stdout"] = ""
-        payload["stderr"] = ""
+    try:
+        from celery.result import AsyncResult
 
-    return payload
+        result: AsyncResult = AsyncResult(task_id, app=celery_app)
+        state = result.state  # PENDING | STARTED | SUCCESS | FAILURE | REVOKED
+
+        payload: dict = {"task_id": task_id, "state": state}
+
+        if state == "SUCCESS":
+            payload.update(result.result or {})  # merges stdout/stderr/success/language
+        elif state == "FAILURE":
+            payload["stderr"] = str(result.result)
+            payload["success"] = False
+        elif state in ("PENDING", "STARTED"):
+            payload["stdout"] = ""
+            payload["stderr"] = ""
+
+        return payload
+    except Exception:
+        return {"task_id": task_id, "state": "PENDING", "stdout": "", "stderr": ""}
 
 
 @router.get("/{task_id}/status")

@@ -18,6 +18,7 @@ from app.api.routes import (
     personas,
     rag,
     tasks,
+    vault,
     web,
 )
 from app.database.connection import Base, engine
@@ -63,6 +64,9 @@ app.include_router(web.router, prefix="/api/v1")  # Feature 5: Web fetcher
 app.include_router(rag.router, prefix="/api/v1")  # Multi-Domain C++ SIMD Vector RAG
 app.include_router(learning.router, prefix="/api/v1")  # Phase 3: Cross-AI Learning Adapter
 app.include_router(feedback.router, prefix="/api/v1")  # Phase 4: Episodic Feedback & Rule Learning
+app.include_router(
+    vault.router, prefix="/api/v1"
+)  # Phase 5: Sovereign Zero-Footprint Storage Vault
 
 
 @app.get("/", tags=["health"])

@@ -497,6 +497,32 @@ func TestUIHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("Sovereign Storage Vault Form Dispatches (Checkpoint and Vacuum)", func(t *testing.T) {
+		// 1. Checkpoint dispatch
+		cpForm := url.Values{}
+		cpForm.Set("theme", "light")
+		reqCP := httptest.NewRequest(http.MethodPost, "/dashboard/vault/checkpoint", strings.NewReader(cpForm.Encode()))
+		reqCP.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recCP := httptest.NewRecorder()
+		h.HandleVaultCheckpoint(recCP, reqCP)
+
+		if recCP.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on vault checkpoint, got %d", recCP.Code)
+		}
+
+		// 2. Vacuum dispatch
+		vacForm := url.Values{}
+		vacForm.Set("theme", "light")
+		reqVac := httptest.NewRequest(http.MethodPost, "/dashboard/vault/vacuum", strings.NewReader(vacForm.Encode()))
+		reqVac.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recVac := httptest.NewRecorder()
+		h.HandleVaultVacuum(recVac, reqVac)
+
+		if recVac.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on vault vacuum, got %d", recVac.Code)
+		}
+	})
+
 	t.Run("Static Asset Delivery (CSS Only, Zero JS)", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/static/css/dashboard.css", nil)
 		rec := httptest.NewRecorder()

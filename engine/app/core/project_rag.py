@@ -277,6 +277,22 @@ def scan_and_index_workspace(
 
     _IN_MEMORY_VAULT = new_in_memory
 
+    try:
+        from app.storage.vault import get_storage_vault
+
+        vault = get_storage_vault()
+        docs_map: dict[str, list[tuple[int, str, list[float]]]] = {}
+        domain_map: dict[str, str] = {}
+        for c in new_in_memory:
+            docs_map.setdefault(c.path, []).append((c.chunk_index, c.content, c.embedding))
+            domain_map[c.path] = c.domain
+        for doc_uri, c_list in docs_map.items():
+            vault.upsert_document_chunks(
+                uri=doc_uri, domain=domain_map[doc_uri], chunks=c_list, kind="file"
+            )
+    except Exception:
+        pass
+
     return {
         "status": "indexed",
         "files_indexed": len(eligible_files),
@@ -406,6 +422,27 @@ def retrieve_context(
                 )
             )
 
+    if not results and not use_db:
+        try:
+            from app.storage.vault import get_storage_vault
+
+            vault = get_storage_vault()
+            v_chunks = vault.query_similar_chunks(
+                query_embedding, domain_filter=domain_filter, limit=limit
+            )
+            for vc in v_chunks:
+                results.append(
+                    RetrievedChunk(
+                        path=vc.uri,
+                        content=vc.content,
+                        score=vc.score,
+                        domain=vc.domain,
+                        chunk_index=vc.chunk_index,
+                    )
+                )
+        except Exception:
+            pass
+
     results.sort(key=lambda item: item.score, reverse=True)
     return results[:limit]
 
@@ -465,6 +502,15 @@ def index_text_block(
     if use_db:
         db.commit()
 
+    try:
+        from app.storage.vault import get_storage_vault
+
+        vault = get_storage_vault()
+        v_list = [(i, ch, _embed_text(ch)) for i, ch in enumerate(chunks)]
+        vault.upsert_document_chunks(uri=uri, domain=domain, chunks=v_list, kind="memory")
+    except Exception:
+        pass
+
     return count
 
 
@@ -472,6 +518,12 @@ def clear_in_memory_vault() -> None:
     """Clears all ephemeral in-memory vault chunks."""
     global _IN_MEMORY_VAULT
     _IN_MEMORY_VAULT = []
+    try:
+        from app.storage.vault import get_storage_vault
+
+        get_storage_vault().clear_documents()
+    except Exception:
+        pass
 
 
 def get_vault_stats() -> dict[str, Any]:

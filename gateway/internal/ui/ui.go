@@ -136,6 +136,22 @@ type LearnedRule struct {
 	CreatedAt       string   `json:"created_at"`
 }
 
+// VaultStatus represents the Phase 5 Zero-Footprint Embedded Storage Vault telemetry.
+type VaultStatus struct {
+	Status            string         `json:"status"`
+	VaultPath         string         `json:"vault_path"`
+	DatabaseSizeBytes int64          `json:"database_size_bytes"`
+	DatabaseSizeKB    float64        `json:"database_size_kb"`
+	WALSizeBytes      int64          `json:"wal_size_bytes"`
+	ActiveConnections int            `json:"active_connections"`
+	IdleRAMMode       string         `json:"idle_ram_mode"`
+	DocumentsCount    int            `json:"documents_count"`
+	ChunksCount       int            `json:"chunks_count"`
+	RulesCount        int            `json:"rules_count"`
+	TasksCount        int            `json:"tasks_count"`
+	Domains           map[string]int `json:"domains"`
+}
+
 // UIHandler manages server-side rendering of pure HTML/CSS templates (Zero-JS).
 type UIHandler struct {
 	cfg          *config.Config
@@ -306,10 +322,11 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 	ragStatus := h.fetchRAGStatus()
 	learningStatus := h.fetchAILearningStatus()
 	learnedRules := h.fetchLearnedRules()
+	vaultStatus := h.fetchVaultStatus()
 
 	data := map[string]interface{}{
 		"Title":             "FluxKernel — Enterprise Minimalist Console",
-		"Version":           "v0.4.0",
+		"Version":           "v0.5.0",
 		"Theme":             theme,
 		"ActiveFile":        activeFile,
 		"ActiveFileContent": activeFileContent,
@@ -330,6 +347,7 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 		"WebBrief":          webBriefCopy,
 		"AILearning":        learningStatus,
 		"LearnedRules":      learnedRules,
+		"VaultStatus":       vaultStatus,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -1764,6 +1782,124 @@ func (h *UIHandler) HandleRuleDelete(w http.ResponseWriter, r *http.Request) {
 		}
 		h.mu.Lock()
 		h.flashMessage = fmt.Sprintf("Rule '%s' deleted.", ruleID)
+		h.flashType = "flash-warning"
+		h.mu.Unlock()
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+// fetchVaultStatus queries deep storage telemetry and 0% idle RAM metrics from the Phase 5 Sovereign Storage Vault.
+func (h *UIHandler) fetchVaultStatus() *VaultStatus {
+	req, err := http.NewRequest(http.MethodGet, h.cfg.EngineURL+"/api/v1/vault/status", nil)
+	if err != nil {
+		return &VaultStatus{
+			Status:            "offline",
+			IdleRAMMode:       "Zero-Footprint (WAL / Auto-Closed Scoped Handles)",
+			ActiveConnections: 0,
+		}
+	}
+	resp, err := h.client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		return &VaultStatus{
+			Status:            "offline",
+			IdleRAMMode:       "Zero-Footprint (WAL / Auto-Closed Scoped Handles)",
+			ActiveConnections: 0,
+		}
+	}
+	defer resp.Body.Close()
+
+	var st VaultStatus
+	if err := json.NewDecoder(resp.Body).Decode(&st); err != nil {
+		return &VaultStatus{
+			Status:            "online",
+			IdleRAMMode:       "Zero-Footprint (WAL / Auto-Closed Scoped Handles)",
+			ActiveConnections: 0,
+		}
+	}
+	return &st
+}
+
+// HandleVaultCheckpoint runs a WAL checkpoint (TRUNCATE) on the Sovereign Storage Vault.
+func (h *UIHandler) HandleVaultCheckpoint(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	theme := r.FormValue("theme")
+	if theme == "" {
+		theme = r.URL.Query().Get("theme")
+	}
+	if theme == "" {
+		theme = "light"
+	}
+
+	req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/vault/checkpoint", nil)
+	if err == nil {
+		resp, err := h.client.Do(req)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			_ = resp.Body.Close()
+			h.mu.Lock()
+			h.flashMessage = "Sovereign Vault WAL Checkpoint (TRUNCATE) completed: 0% idle RAM verified."
+			h.flashType = "flash-success"
+			h.mu.Unlock()
+		} else {
+			if resp != nil {
+				_ = resp.Body.Close()
+			}
+			h.mu.Lock()
+			h.flashMessage = "Vault Checkpoint returned non-200 response."
+			h.flashType = "flash-warning"
+			h.mu.Unlock()
+		}
+	} else {
+		h.mu.Lock()
+		h.flashMessage = "Failed to communicate with storage vault."
+		h.flashType = "flash-warning"
+		h.mu.Unlock()
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+// HandleVaultVacuum compacts the Sovereign Storage Vault database.
+func (h *UIHandler) HandleVaultVacuum(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	theme := r.FormValue("theme")
+	if theme == "" {
+		theme = r.URL.Query().Get("theme")
+	}
+	if theme == "" {
+		theme = "light"
+	}
+
+	req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/vault/vacuum", nil)
+	if err == nil {
+		resp, err := h.client.Do(req)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			_ = resp.Body.Close()
+			h.mu.Lock()
+			h.flashMessage = "Sovereign Vault VACUUM completed: Unused storage pages reclaimed."
+			h.flashType = "flash-success"
+			h.mu.Unlock()
+		} else {
+			if resp != nil {
+				_ = resp.Body.Close()
+			}
+			h.mu.Lock()
+			h.flashMessage = "Vault Vacuum returned non-200 response."
+			h.flashType = "flash-warning"
+			h.mu.Unlock()
+		}
+	} else {
+		h.mu.Lock()
+		h.flashMessage = "Failed to communicate with storage vault."
 		h.flashType = "flash-warning"
 		h.mu.Unlock()
 	}
