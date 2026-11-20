@@ -356,6 +356,42 @@
           </form>
         </div>
       </div>
+
+      <!-- Phase 6: Multi-Domain Agent Swarm -->
+      <div class="pane-header" style="margin-top: 16px; border-top: 1px solid var(--border);">
+        <span>Multi-Domain Agent Swarm</span>
+        <span class="badge badge-info" style="font-size: 10px;">4 SPECIALISTS</span>
+      </div>
+      <div style="padding: 10px 8px;">
+        <!-- Specialist Roster Badges -->
+        <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;">
+          <span class="badge badge-neutral" style="font-size: 9px;" title="Tech Lead: Systems, Go, C++20, Concurrency">💻 Tech</span>
+          <span class="badge badge-neutral" style="font-size: 9px;" title="Science Specialist: Physics, Math, O(N) Bounds">🔬 Sci/Math</span>
+          <span class="badge badge-neutral" style="font-size: 9px;" title="Finance Analyst: Valuation, EBITDA, ROI">📊 Finance</span>
+          <span class="badge badge-neutral" style="font-size: 9px;" title="Executive Auditor: Red-Teaming, Governance">⚖️ Auditor</span>
+        </div>
+
+        <form method="POST" action="/dashboard/swarm/deliberate" style="margin: 0;">
+          <input type="hidden" name="theme" value="{{ $.Theme }}">
+          <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+            <select name="mode" class="select-input" style="font-size: 10px; padding: 3px 4px; flex: 1;">
+              <option value="consensus" {{ if eq .SwarmMode "consensus" }}selected{{ end }}>Consensus Debate</option>
+              <option value="pipeline" {{ if eq .SwarmMode "pipeline" }}selected{{ end }}>Staged Pipeline</option>
+              <option value="audit" {{ if eq .SwarmMode "audit" }}selected{{ end }}>Auditor Gate</option>
+            </select>
+            <select name="domain_hint" class="select-input" style="font-size: 10px; padding: 3px 4px; max-width: 75px;">
+              <option value="tech">Tech</option>
+              <option value="finance">Finance</option>
+              <option value="science">Science</option>
+              <option value="general">General</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 6px;">
+            <textarea name="prompt" class="code-editor" style="height: 60px; font-size: 10px; width: 100%; box-sizing: border-box; resize: vertical;" placeholder="Directive for multi-agent swarm deliberation..." required>{{ .SwarmQuery }}</textarea>
+          </div>
+          <button type="submit" class="btn-primary" style="font-size: 11px; padding: 4px 8px; width: 100%;">⚖️ Deliberate with Swarm ➔</button>
+        </form>
+      </div>
     </div>
   </aside>
 
@@ -367,6 +403,67 @@
         {{ if and .Loop (eq .Loop.Status "running") }}● LOOP RUNNING ({{ .Loop.Iteration }}/{{ .Loop.MaxIterations }}){{ else }}Autonomous Loop{{ end }}
       </span>
     </div>
+
+    <!-- Swarm Deliberation Consensus Card (Phase 6) -->
+    {{ if .SwarmConsensus }}
+    <div class="decision-matrix-card" style="border-left: 3px solid var(--primary); margin-bottom: 12px;">
+      <div class="decision-matrix-header">
+        <div class="matrix-status-group">
+          <span class="badge {{ if eq .SwarmConsensus.Status "UNANIMOUS" }}badge-success{{ else if eq .SwarmConsensus.Status "MAJORITY_CONSENSUS" }}badge-info{{ else }}badge-warning{{ end }}">
+            ⚖️ SWARM CONSENSUS: {{ .SwarmConsensus.Status }}
+          </span>
+          <span class="matrix-loop-id">Session: {{ .SwarmConsensus.SessionID }} ({{ .SwarmConsensus.TotalLatencyMS }}ms)</span>
+        </div>
+      </div>
+      <div style="padding: 10px 12px;">
+        <div style="font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text);">
+          Directive: "{{ .SwarmConsensus.UserPrompt }}"
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4;">
+          <strong>Executive Synthesis:</strong> {{ .SwarmConsensus.ExecutiveSummary }}
+        </div>
+
+        <!-- Specialist Ballots -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-bottom: 10px;">
+          {{ range .SwarmConsensus.Perspectives }}
+          <div class="snapshot-item" style="padding: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 11px; font-weight: 600;">
+                {{ if eq .Domain "tech" }}💻{{ else if eq .Domain "science" }}🔬{{ else if eq .Domain "finance" }}📊{{ else }}⚖️{{ end }}
+                {{ .AgentName }}
+              </span>
+              <span class="badge {{ if eq .Vote "APPROVE" }}badge-success{{ else if eq .Vote "REQUEST_CHANGES" }}badge-warning{{ else }}badge-neutral{{ end }}" style="font-size: 9px;">
+                {{ .Vote }}
+              </span>
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">
+              {{ .Proposal }}
+            </div>
+            {{ if .Concerns }}
+            <div style="font-size: 9px; color: var(--warning);">
+              ⚠ Concerns: {{ range $i, $c := .Concerns }}{{ if $i }}, {{ end }}{{ $c }}{{ end }}
+            </div>
+            {{ end }}
+          </div>
+          {{ end }}
+        </div>
+
+        <!-- Unified Action Plan -->
+        {{ if .SwarmConsensus.UnifiedActionPlan }}
+        <div style="margin-top: 8px;">
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">
+            Unified Sovereign Action Plan:
+          </div>
+          <ol style="margin: 0; padding-left: 18px; font-size: 11px; line-height: 1.5;">
+            {{ range .SwarmConsensus.UnifiedActionPlan }}
+            <li>{{ . }}</li>
+            {{ end }}
+          </ol>
+        </div>
+        {{ end }}
+      </div>
+    </div>
+    {{ end }}
 
     <!-- Autonomous Decision Matrix & Timeline -->
     {{ if and .Loop .Loop.Cards }}

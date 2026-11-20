@@ -523,6 +523,24 @@ func TestUIHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("Multi-Domain Agent Swarm Form Dispatch", func(t *testing.T) {
+		form := url.Values{}
+		form.Set("prompt", "Design microsecond matching engine with numerical bounds and risk management")
+		form.Set("mode", "consensus")
+		form.Set("domain_hint", "tech")
+		form.Set("theme", "light")
+
+		req := httptest.NewRequest(http.MethodPost, "/dashboard/swarm/deliberate", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+
+		h.HandleSwarmDeliberate(rec, req)
+
+		if rec.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on swarm deliberate, got %d", rec.Code)
+		}
+	})
+
 	t.Run("Static Asset Delivery (CSS Only, Zero JS)", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/static/css/dashboard.css", nil)
 		rec := httptest.NewRecorder()

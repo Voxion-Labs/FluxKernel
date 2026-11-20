@@ -118,6 +118,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/dashboard/rules/delete", h.uiHandler.HandleRuleDelete)
 	mux.HandleFunc("/dashboard/vault/checkpoint", h.uiHandler.HandleVaultCheckpoint)
 	mux.HandleFunc("/dashboard/vault/vacuum", h.uiHandler.HandleVaultVacuum)
+	mux.HandleFunc("/dashboard/swarm/deliberate", h.uiHandler.HandleSwarmDeliberate)
 	mux.Handle("/static/", h.uiHandler.ServeStatic())
 
 	// High-Performance Services (replacing TypeScript Next.js API routes)

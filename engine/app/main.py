@@ -17,6 +17,7 @@ from app.api.routes import (
     learning,
     personas,
     rag,
+    swarm,
     tasks,
     vault,
     web,
@@ -67,6 +68,7 @@ app.include_router(feedback.router, prefix="/api/v1")  # Phase 4: Episodic Feedb
 app.include_router(
     vault.router, prefix="/api/v1"
 )  # Phase 5: Sovereign Zero-Footprint Storage Vault
+app.include_router(swarm.router, prefix="/api/v1")  # Phase 6: Multi-Domain Agent Swarm
 
 
 @app.get("/", tags=["health"])

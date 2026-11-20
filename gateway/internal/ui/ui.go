@@ -152,6 +152,43 @@ type VaultStatus struct {
 	Domains           map[string]int `json:"domains"`
 }
 
+// SwarmPerspective represents an individual specialist perspective.
+type SwarmPerspective struct {
+	AgentID         string   `json:"agent_id"`
+	AgentName       string   `json:"agent_name"`
+	Domain          string   `json:"domain"`
+	Analysis        string   `json:"analysis"`
+	Proposal        string   `json:"proposal"`
+	Concerns        []string `json:"concerns"`
+	Vote            string   `json:"vote"`
+	Confidence      float64  `json:"confidence"`
+	ExecutionTimeMS float64  `json:"execution_time_ms"`
+}
+
+// SwarmConsensus represents the outcome of a Multi-Domain Swarm Deliberation.
+type SwarmConsensus struct {
+	SessionID         string             `json:"session_id"`
+	UserPrompt        string             `json:"user_prompt"`
+	Mode              string             `json:"mode"`
+	Status            string             `json:"status"`
+	ExecutiveSummary  string             `json:"executive_summary"`
+	UnifiedActionPlan []string           `json:"unified_action_plan"`
+	RiskMitigations   []string           `json:"risk_mitigations"`
+	Perspectives      []SwarmPerspective `json:"perspectives"`
+	TotalLatencyMS    float64            `json:"total_latency_ms"`
+	CreatedAt         string             `json:"created_at"`
+}
+
+// SwarmAgent represents a member of the sovereign swarm.
+type SwarmAgent struct {
+	AgentID   string   `json:"agent_id"`
+	Name      string   `json:"name"`
+	Domain    string   `json:"domain"`
+	Title     string   `json:"title"`
+	Icon      string   `json:"icon"`
+	Expertise []string `json:"expertise"`
+}
+
 // UIHandler manages server-side rendering of pure HTML/CSS templates (Zero-JS).
 type UIHandler struct {
 	cfg          *config.Config
@@ -177,6 +214,10 @@ type UIHandler struct {
 	webQuery string
 	webHits  []WebSearchHit
 	webBrief *WebResearchBrief
+
+	swarmQuery     string
+	swarmMode      string
+	swarmConsensus *SwarmConsensus
 }
 
 // NewUIHandler initializes the template engine and sets up pure SSR handlers.
@@ -317,16 +358,24 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 			CachedSIMD:    h.webBrief.CachedSIMD,
 		}
 	}
+
+	swarmQ := h.swarmQuery
+	swarmM := h.swarmMode
+	var swarmConsensusCopy *SwarmConsensus
+	if h.swarmConsensus != nil {
+		swarmConsensusCopy = h.swarmConsensus
+	}
 	h.mu.Unlock()
 
 	ragStatus := h.fetchRAGStatus()
 	learningStatus := h.fetchAILearningStatus()
 	learnedRules := h.fetchLearnedRules()
 	vaultStatus := h.fetchVaultStatus()
+	swarmAgents := h.fetchSwarmAgents()
 
 	data := map[string]interface{}{
 		"Title":             "FluxKernel — Enterprise Minimalist Console",
-		"Version":           "v0.5.0",
+		"Version":           "v0.6.0",
 		"Theme":             theme,
 		"ActiveFile":        activeFile,
 		"ActiveFileContent": activeFileContent,
@@ -348,6 +397,10 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 		"AILearning":        learningStatus,
 		"LearnedRules":      learnedRules,
 		"VaultStatus":       vaultStatus,
+		"SwarmQuery":        swarmQ,
+		"SwarmMode":         swarmM,
+		"SwarmConsensus":    swarmConsensusCopy,
+		"SwarmAgents":       swarmAgents,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -1902,6 +1955,85 @@ func (h *UIHandler) HandleVaultVacuum(w http.ResponseWriter, r *http.Request) {
 		h.flashMessage = "Failed to communicate with storage vault."
 		h.flashType = "flash-warning"
 		h.mu.Unlock()
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+// fetchSwarmAgents retrieves the roster of sovereign specialist agents from the Python core.
+func (h *UIHandler) fetchSwarmAgents() []SwarmAgent {
+	req, err := http.NewRequest(http.MethodGet, h.cfg.EngineURL+"/api/v1/swarm/agents", nil)
+	if err != nil {
+		return nil
+	}
+	resp, err := h.client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		return nil
+	}
+	defer resp.Body.Close()
+
+	var agents []SwarmAgent
+	_ = json.NewDecoder(resp.Body).Decode(&agents)
+	return agents
+}
+
+// HandleSwarmDeliberate dispatches a directive to the Multi-Domain Agent Swarm.
+func (h *UIHandler) HandleSwarmDeliberate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	theme := r.FormValue("theme")
+	if theme == "" {
+		theme = r.URL.Query().Get("theme")
+	}
+	if theme == "" {
+		theme = "light"
+	}
+
+	prompt := strings.TrimSpace(r.FormValue("prompt"))
+	mode := strings.TrimSpace(r.FormValue("mode"))
+	if mode == "" {
+		mode = "consensus"
+	}
+	domainHint := strings.TrimSpace(r.FormValue("domain_hint"))
+
+	if prompt != "" {
+		payload := map[string]interface{}{
+			"prompt":      prompt,
+			"mode":        mode,
+			"domain_hint": domainHint,
+		}
+		body, _ := json.Marshal(payload)
+		req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/swarm/deliberate", bytes.NewReader(body))
+		if err == nil {
+			req.Header.Set("Content-Type", "application/json")
+			resp, err := h.client.Do(req)
+			if err == nil && resp.StatusCode == http.StatusOK {
+				defer resp.Body.Close()
+				var consensus SwarmConsensus
+				if err := json.NewDecoder(resp.Body).Decode(&consensus); err == nil {
+					h.mu.Lock()
+					h.swarmQuery = prompt
+					h.swarmMode = mode
+					h.swarmConsensus = &consensus
+					h.flashMessage = fmt.Sprintf("Swarm Deliberation finished (%s): %s", consensus.Status, consensus.ExecutiveSummary)
+					h.flashType = "flash-success"
+					h.mu.Unlock()
+				}
+			} else {
+				if resp != nil {
+					_ = resp.Body.Close()
+				}
+				h.mu.Lock()
+				h.flashMessage = "Swarm deliberation failed or timed out."
+				h.flashType = "flash-warning"
+				h.mu.Unlock()
+			}
+		}
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
