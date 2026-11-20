@@ -557,6 +557,22 @@
     </div>
     {{ end }}
 
+    <!-- Phase 7: Real-Time Live Telemetry & Log Stream (Zero-JS) -->
+    <div class="decision-matrix-card" style="margin-bottom: 12px;">
+      <div class="decision-matrix-header">
+        <div class="matrix-status-group">
+          <span class="badge badge-info">● LIVE TELEMETRY STREAM</span>
+          <span class="matrix-loop-id">HTTP Chunked Progressive SSR (Zero-JS)</span>
+        </div>
+        <div class="matrix-actions">
+          <a href="/dashboard/stream?theme={{ $.Theme }}" target="_blank" class="btn-restore" style="font-size: 10px; text-decoration: none;">↗ Full Screen Stream</a>
+        </div>
+      </div>
+      <div style="padding: 0;">
+        <iframe src="/dashboard/stream?theme={{ $.Theme }}" style="width: 100%; height: 160px; border: none; display: block; border-radius: 0 0 6px 6px;"></iframe>
+      </div>
+    </div>
+
     <!-- Scrollable Conversation Ledger -->
     <div class="conversation-scroll">
       <div class="msg-card system">

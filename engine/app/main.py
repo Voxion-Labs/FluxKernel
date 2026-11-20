@@ -19,6 +19,7 @@ from app.api.routes import (
     rag,
     swarm,
     tasks,
+    telemetry,
     vault,
     web,
 )
@@ -69,6 +70,9 @@ app.include_router(
     vault.router, prefix="/api/v1"
 )  # Phase 5: Sovereign Zero-Footprint Storage Vault
 app.include_router(swarm.router, prefix="/api/v1")  # Phase 6: Multi-Domain Agent Swarm
+app.include_router(
+    telemetry.router, prefix="/api/v1"
+)  # Phase 7: Real-Time SSE Live Telemetry Streaming
 
 
 @app.get("/", tags=["health"])

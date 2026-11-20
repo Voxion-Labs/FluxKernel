@@ -189,6 +189,16 @@ type SwarmAgent struct {
 	Expertise []string `json:"expertise"`
 }
 
+// TelemetryEvent represents a real-time event received from the telemetry streaming bus.
+type TelemetryEvent struct {
+	EventID   string                 `json:"event_id"`
+	Source    string                 `json:"source"`
+	Level     string                 `json:"level"`
+	Message   string                 `json:"message"`
+	Metadata  map[string]interface{} `json:"metadata"`
+	Timestamp string                 `json:"timestamp"`
+}
+
 // UIHandler manages server-side rendering of pure HTML/CSS templates (Zero-JS).
 type UIHandler struct {
 	cfg          *config.Config
@@ -2037,6 +2047,145 @@ func (h *UIHandler) HandleSwarmDeliberate(w http.ResponseWriter, r *http.Request
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+// fetchTelemetryEvents queries recent historical events from the Python telemetry bus.
+func (h *UIHandler) fetchTelemetryEvents(limit int) []TelemetryEvent {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/telemetry/events?limit=%d", h.cfg.EngineURL, limit), nil)
+	if err != nil {
+		return nil
+	}
+	resp, err := h.client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		return nil
+	}
+	defer resp.Body.Close()
+
+	var events []TelemetryEvent
+	_ = json.NewDecoder(resp.Body).Decode(&events)
+	return events
+}
+
+// HandleStream provides progressive real-time telemetry streaming (Zero-JS).
+// For browser/iframe requests (text/html), it uses chunked HTTP/1.1 transfer encoding
+// to flush live HTML terminal frames chunk-by-chunk without any client-side JavaScript.
+// For SSE clients (Accept: text/event-stream), it emits standard SSE event frames.
+func (h *UIHandler) HandleStream(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming unsupported by client connection", http.StatusInternalServerError)
+		return
+	}
+
+	theme := r.URL.Query().Get("theme")
+	if theme == "" {
+		theme = "light"
+	}
+
+	accept := r.Header.Get("Accept")
+	isSSE := strings.Contains(accept, "text/event-stream")
+
+	if isSSE {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("X-Accel-Buffering", "no")
+
+		// Fetch and replay recent historical events
+		history := h.fetchTelemetryEvents(20)
+		for _, evt := range history {
+			data, _ := json.Marshal(evt)
+			fmt.Fprintf(w, "id: %s\nevent: %s\ndata: %s\n\n", evt.EventID, evt.Source, data)
+		}
+		flusher.Flush()
+		return
+	}
+
+	// Browser Chunked Progressive HTML Stream (Zero-JS)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	bg := "#ffffff"
+	fg := "#0f172a"
+	border := "#e2e8f0"
+	muted := "#64748b"
+	if theme == "dark" {
+		bg = "#0f172a"
+		fg = "#f8fafc"
+		border = "#1e293b"
+		muted = "#94a3b8"
+	}
+
+	// Write terminal frame HTML document shell
+	fmt.Fprintf(w, `<!DOCTYPE html>
+<html data-theme="%s">
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 10px 12px;
+      background: %s; color: %s;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px; line-height: 1.5;
+    }
+    .stream-header {
+      font-size: 10px; font-weight: 600; color: %s; margin-bottom: 8px;
+      padding-bottom: 4px; border-bottom: 1px solid %s;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .stream-log { margin: 0; padding: 0; list-style: none; }
+    .stream-row {
+      margin-bottom: 4px; display: flex; gap: 8px; align-items: baseline;
+      word-break: break-all;
+    }
+    .t-time { color: %s; font-size: 10px; white-space: nowrap; }
+    .t-src {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      padding: 1px 4px; border-radius: 3px; border: 1px solid %s;
+      white-space: nowrap;
+    }
+    .t-msg { flex: 1; }
+    .lvl-INFO { color: %s; }
+    .lvl-SUCCESS { color: #16a34a; font-weight: 600; }
+    .lvl-WARN { color: #d97706; font-weight: 600; }
+    .lvl-ERROR { color: #dc2626; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="stream-header">
+    <span>● FLUXKERNEL LIVE TELEMETRY BUS</span>
+    <span>HTTP Chunked Transfer · Zero JS</span>
+  </div>
+  <div class="stream-log">
+`, theme, bg, fg, muted, border, muted, border, fg)
+	flusher.Flush()
+
+	// Replay historical telemetry events
+	history := h.fetchTelemetryEvents(25)
+	if len(history) == 0 {
+		fmt.Fprintf(w, `<div class="stream-row"><span class="t-time">--:--:--</span><span class="t-src">SYSTEM</span><span class="t-msg lvl-INFO">Telemetry stream connected. Waiting for active directives...</span></div>`)
+	} else {
+		for _, evt := range history {
+			tStr := evt.Timestamp
+			if len(tStr) >= 19 {
+				tStr = tStr[11:19]
+			}
+			fmt.Fprintf(w, `<div class="stream-row"><span class="t-time">%s</span><span class="t-src">%s</span><span class="t-msg lvl-%s">%s</span></div>`,
+				template.HTMLEscapeString(tStr),
+				template.HTMLEscapeString(evt.Source),
+				template.HTMLEscapeString(evt.Level),
+				template.HTMLEscapeString(evt.Message),
+			)
+		}
+	}
+	fmt.Fprintf(w, "  </div>\n</body>\n</html>\n")
+	flusher.Flush()
 }
 
 // ServeStatic exposes the embedded static asset file server.

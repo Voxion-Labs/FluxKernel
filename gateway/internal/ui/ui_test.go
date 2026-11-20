@@ -541,6 +541,40 @@ func TestUIHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("Real-Time Telemetry Streaming (Zero-JS HTML and SSE)", func(t *testing.T) {
+		// 1. Browser chunked progressive HTML stream (Zero-JS)
+		reqHTML := httptest.NewRequest(http.MethodGet, "/dashboard/stream?theme=light", nil)
+		recHTML := httptest.NewRecorder()
+		h.HandleStream(recHTML, reqHTML)
+
+		if recHTML.Code != http.StatusOK {
+			t.Errorf("expected 200 OK for HTML stream, got %d", recHTML.Code)
+		}
+		if !strings.Contains(recHTML.Header().Get("Content-Type"), "text/html") {
+			t.Errorf("expected Content-Type text/html, got %s", recHTML.Header().Get("Content-Type"))
+		}
+		htmlBody := recHTML.Body.String()
+		if strings.Contains(htmlBody, "<script") {
+			t.Errorf("VIOLATION: <script> detected in live telemetry stream! Policy requires Zero-JS.")
+		}
+		if !strings.Contains(htmlBody, "FLUXKERNEL LIVE TELEMETRY BUS") {
+			t.Errorf("expected body to contain FLUXKERNEL LIVE TELEMETRY BUS")
+		}
+
+		// 2. Server-Sent Events (SSE) stream for programmatic clients
+		reqSSE := httptest.NewRequest(http.MethodGet, "/dashboard/stream", nil)
+		reqSSE.Header.Set("Accept", "text/event-stream")
+		recSSE := httptest.NewRecorder()
+		h.HandleStream(recSSE, reqSSE)
+
+		if recSSE.Code != http.StatusOK {
+			t.Errorf("expected 200 OK for SSE stream, got %d", recSSE.Code)
+		}
+		if !strings.Contains(recSSE.Header().Get("Content-Type"), "text/event-stream") {
+			t.Errorf("expected Content-Type text/event-stream, got %s", recSSE.Header().Get("Content-Type"))
+		}
+	})
+
 	t.Run("Static Asset Delivery (CSS Only, Zero JS)", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/static/css/dashboard.css", nil)
 		rec := httptest.NewRecorder()

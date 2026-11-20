@@ -182,6 +182,18 @@ async def run_agentic_loop(
     current_prompt = _build_plan_prompt(initial_prompt)
     current_system = _PLAN_SYSTEM
 
+    try:
+        from app.core.telemetry import emit_telemetry
+
+        emit_telemetry(
+            source="autopilot",
+            level="INFO",
+            message=f"Auto-Pilot loop {loop_id[:8]} started ({persona_name})",
+            metadata={"loop_id": loop_id, "prompt": initial_prompt[:60]},
+        )
+    except Exception:
+        pass
+
     # Dynamically inject learned user rules into Auto-Pilot planner
     try:
         from app.tools.feedback_learner import build_rules_prompt_block

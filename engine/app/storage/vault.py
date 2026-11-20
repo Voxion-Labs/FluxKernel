@@ -467,13 +467,27 @@ class SovereignStorageVault:
             res = cursor.fetchone()
             busy, log_frames, checkpointed_frames = res if res else (0, 0, 0)
 
-        return {
+        res_dict = {
             "mode": mode,
             "busy": bool(busy),
             "log_frames": log_frames,
             "checkpointed_frames": checkpointed_frames,
             "wal_size_bytes": self.get_wal_size(),
         }
+
+        try:
+            from app.core.telemetry import emit_telemetry
+
+            emit_telemetry(
+                source="vault",
+                level="INFO",
+                message=f"WAL Checkpoint ({mode}) executed; WAL size: {self.get_wal_size()}B",
+                metadata=res_dict,
+            )
+        except Exception:
+            pass
+
+        return res_dict
 
     def vacuum(self) -> None:
         """Reclaims unused database pages and compacts the vault on disk."""

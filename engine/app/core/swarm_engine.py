@@ -559,6 +559,18 @@ class SwarmCoordinator:
         except Exception:
             pass
 
+        try:
+            from app.core.telemetry import emit_telemetry
+
+            emit_telemetry(
+                source="swarm",
+                level="SUCCESS",
+                message=f"Swarm consensus reached ({status}) in {round(total_latency, 1)}ms",
+                metadata={"session_id": session_id, "status": status, "mode": mode},
+            )
+        except Exception:
+            pass
+
         return consensus
 
     @staticmethod
