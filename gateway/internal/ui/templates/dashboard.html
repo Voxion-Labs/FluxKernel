@@ -10,9 +10,25 @@
   </div>
 
   <div class="header-center">
-    <span class="badge badge-success">● ENGINE ACTIVE :8000</span>
-    <span class="badge badge-info">🛡️ C++ NATIVE SANDBOX JAIL</span>
-    <span class="badge badge-neutral">TS: 0% INDEPENDENT</span>
+    <!-- Phase 8: Universal Fast Workspace & Cross-Domain Search Bar -->
+    <form method="GET" action="/dashboard/search" style="display: flex; gap: 4px; align-items: center; width: 100%; max-width: 480px; margin: 0;">
+      <input type="hidden" name="theme" value="{{ .Theme }}">
+      {{ if .ActiveFile }}<input type="hidden" name="file" value="{{ .ActiveFile }}">{{ end }}
+      <div style="position: relative; flex: 1;">
+        <input type="text" name="q" class="text-input" style="font-size: 11px; padding: 4px 8px 4px 24px; width: 100%; box-sizing: border-box; border-radius: 4px;" placeholder="Search workspace files, symbols, ledgers, rules..." value="{{ .GlobalSearchQuery }}">
+        <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text-muted); pointer-events: none;">🔍</span>
+      </div>
+      <select name="domain" class="select-input" style="font-size: 10px; padding: 3px 6px; border-radius: 4px; max-width: 80px;">
+        <option value="all" {{ if eq .GlobalSearchDomain "all" }}selected{{ end }}>All</option>
+        <option value="tech" {{ if eq .GlobalSearchDomain "tech" }}selected{{ end }}>Tech</option>
+        <option value="science" {{ if eq .GlobalSearchDomain "science" }}selected{{ end }}>Science</option>
+        <option value="finance" {{ if eq .GlobalSearchDomain "finance" }}selected{{ end }}>Finance</option>
+      </select>
+      <button type="submit" class="btn-primary" style="font-size: 10px; padding: 4px 8px; border-radius: 4px; white-space: nowrap;">Search</button>
+      {{ if .GlobalSearchResults }}
+      <a href="/dashboard/search?clear=1&theme={{ $.Theme }}{{ if $.ActiveFile }}&file={{ $.ActiveFile }}{{ end }}" class="btn-discard" style="font-size: 10px; padding: 4px 6px; border-radius: 4px; text-decoration: none;" title="Clear search results">✕</a>
+      {{ end }}
+    </form>
   </div>
 
   <div class="header-right">
@@ -403,6 +419,49 @@
         {{ if and .Loop (eq .Loop.Status "running") }}● LOOP RUNNING ({{ .Loop.Iteration }}/{{ .Loop.MaxIterations }}){{ else }}Autonomous Loop{{ end }}
       </span>
     </div>
+
+    <!-- Phase 8: Universal Workspace & Cross-Domain Search Results Card -->
+    {{ if .GlobalSearchResults }}
+    <div class="decision-matrix-card" style="border-left: 3px solid var(--accent); margin-bottom: 12px;">
+      <div class="decision-matrix-header">
+        <div class="matrix-status-group">
+          <span class="badge badge-info">🔍 SEARCH: "{{ .GlobalSearchResults.Query }}"</span>
+          <span class="matrix-loop-id">{{ .GlobalSearchResults.TotalMatches }} match{{ if ne .GlobalSearchResults.TotalMatches 1 }}es{{ end }} across {{ .GlobalSearchResults.FilesMatched }} file{{ if ne .GlobalSearchResults.FilesMatched 1 }}s{{ end }}</span>
+        </div>
+        <div class="matrix-actions">
+          <span class="badge badge-neutral" style="font-size: 9px;">💻 Tech: {{ index .GlobalSearchResults.Domains "tech" }}</span>
+          <span class="badge badge-neutral" style="font-size: 9px;">🔬 Sci: {{ index .GlobalSearchResults.Domains "science" }}</span>
+          <span class="badge badge-neutral" style="font-size: 9px;">📊 Fin: {{ index .GlobalSearchResults.Domains "finance" }}</span>
+          <a href="/dashboard/search?clear=1&theme={{ $.Theme }}{{ if $.ActiveFile }}&file={{ $.ActiveFile }}{{ end }}" class="btn-discard" style="font-size: 10px; padding: 2px 6px; text-decoration: none;">✕ Close Search</a>
+        </div>
+      </div>
+      <div style="padding: 10px 12px; max-height: 280px; overflow-y: auto;">
+        {{ if .GlobalSearchResults.Results }}
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          {{ range .GlobalSearchResults.Results }}
+          <div class="snapshot-item" style="padding: 6px 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+              <a href="/dashboard?file={{ .Path }}&theme={{ $.Theme }}" style="font-size: 11px; font-weight: 600; color: var(--primary); text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                📄 {{ .Path }}
+                <span class="badge badge-neutral" style="font-size: 9px;">L{{ .LineNumber }}</span>
+              </a>
+              <div style="display: flex; gap: 4px; align-items: center;">
+                <span class="badge badge-neutral" style="font-size: 8px; text-transform: uppercase;">{{ .Domain }}</span>
+                <span class="badge {{ if eq .MatchType "symbol" }}badge-success{{ else if eq .MatchType "file" }}badge-info{{ else }}badge-neutral{{ end }}" style="font-size: 8px;">
+                  {{ .MatchType }}
+                </span>
+              </div>
+            </div>
+            <pre style="margin: 0; padding: 4px 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; font-size: 10px; font-family: var(--font-mono); color: var(--text); overflow-x: auto; white-space: pre-wrap;">{{ .Snippet }}</pre>
+          </div>
+          {{ end }}
+        </div>
+        {{ else }}
+        <div style="font-size: 11px; color: var(--text-muted); padding: 8px;">No matching files or symbols found for query "{{ .GlobalSearchResults.Query }}".</div>
+        {{ end }}
+      </div>
+    </div>
+    {{ end }}
 
     <!-- Swarm Deliberation Consensus Card (Phase 6) -->
     {{ if .SwarmConsensus }}

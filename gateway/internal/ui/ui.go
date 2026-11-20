@@ -199,6 +199,28 @@ type TelemetryEvent struct {
 	Timestamp string                 `json:"timestamp"`
 }
 
+// SearchResultItem represents an individual match from the universal workspace search engine.
+type SearchResultItem struct {
+	Path          string   `json:"path"`
+	LineNumber    int      `json:"line_number"`
+	Snippet       string   `json:"snippet"`
+	ContextBefore []string `json:"context_before"`
+	ContextAfter  []string `json:"context_after"`
+	Domain        string   `json:"domain"`
+	MatchType     string   `json:"match_type"`
+	Score         float64  `json:"score"`
+}
+
+// WorkspaceSearchResponse represents the aggregated result set for a workspace search query.
+type WorkspaceSearchResponse struct {
+	Query        string             `json:"query"`
+	Domain       string             `json:"domain"`
+	TotalMatches int                `json:"total_matches"`
+	FilesMatched int                `json:"files_matched"`
+	Domains      map[string]int     `json:"domains"`
+	Results      []SearchResultItem `json:"results"`
+}
+
 // UIHandler manages server-side rendering of pure HTML/CSS templates (Zero-JS).
 type UIHandler struct {
 	cfg          *config.Config
@@ -228,6 +250,10 @@ type UIHandler struct {
 	swarmQuery     string
 	swarmMode      string
 	swarmConsensus *SwarmConsensus
+
+	globalSearchQuery   string
+	globalSearchDomain  string
+	globalSearchResults *WorkspaceSearchResponse
 }
 
 // NewUIHandler initializes the template engine and sets up pure SSR handlers.
@@ -299,6 +325,27 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 	if activeFile != "" {
 		activeFileContent = h.readWorkspaceFileSafe(activeFile)
 		activeFileLines = len(splitLines(activeFileContent))
+	}
+
+	// Global Workspace Search parameter handling
+	searchQ := strings.TrimSpace(r.URL.Query().Get("q"))
+	if searchQ == "" {
+		searchQ = strings.TrimSpace(r.URL.Query().Get("search"))
+	}
+	searchDomain := strings.TrimSpace(r.URL.Query().Get("domain"))
+	if searchDomain == "" {
+		searchDomain = "all"
+	}
+	searchClear := r.URL.Query().Get("search_clear") == "1" || r.URL.Query().Get("clear") == "1"
+
+	if searchClear {
+		h.mu.Lock()
+		h.globalSearchQuery = ""
+		h.globalSearchDomain = "all"
+		h.globalSearchResults = nil
+		h.mu.Unlock()
+	} else if searchQ != "" {
+		h.executeGlobalSearch(searchQ, searchDomain)
 	}
 
 	// Scan workspace files
@@ -375,6 +422,13 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 	if h.swarmConsensus != nil {
 		swarmConsensusCopy = h.swarmConsensus
 	}
+
+	globalSearchQ := h.globalSearchQuery
+	globalSearchD := h.globalSearchDomain
+	var globalSearchRes *WorkspaceSearchResponse
+	if h.globalSearchResults != nil {
+		globalSearchRes = h.globalSearchResults
+	}
 	h.mu.Unlock()
 
 	ragStatus := h.fetchRAGStatus()
@@ -384,33 +438,36 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 	swarmAgents := h.fetchSwarmAgents()
 
 	data := map[string]interface{}{
-		"Title":             "FluxKernel — Enterprise Minimalist Console",
-		"Version":           "v0.6.0",
-		"Theme":             theme,
-		"ActiveFile":        activeFile,
-		"ActiveFileContent": activeFileContent,
-		"ActiveFileLines":   activeFileLines,
-		"Files":             files,
-		"Snapshots":         snapshots,
-		"Messages":          messagesCopy,
-		"FlashMessage":      flash,
-		"FlashType":         flashType,
-		"Loop":              currentLoop,
-		"DiffBatch":         currentDiffBatch,
-		"RAGQuery":          ragQ,
-		"RAGDomain":         ragD,
-		"RAGResults":        ragRes,
-		"RAGStatus":         ragStatus,
-		"WebQuery":          webQ,
-		"WebHits":           webHitsCopy,
-		"WebBrief":          webBriefCopy,
-		"AILearning":        learningStatus,
-		"LearnedRules":      learnedRules,
-		"VaultStatus":       vaultStatus,
-		"SwarmQuery":        swarmQ,
-		"SwarmMode":         swarmM,
-		"SwarmConsensus":    swarmConsensusCopy,
-		"SwarmAgents":       swarmAgents,
+		"Title":               "FluxKernel — Enterprise Minimalist Console",
+		"Version":             "v0.6.0",
+		"Theme":               theme,
+		"ActiveFile":          activeFile,
+		"ActiveFileContent":   activeFileContent,
+		"ActiveFileLines":     activeFileLines,
+		"Files":               files,
+		"Snapshots":           snapshots,
+		"Messages":            messagesCopy,
+		"FlashMessage":        flash,
+		"FlashType":           flashType,
+		"Loop":                currentLoop,
+		"DiffBatch":           currentDiffBatch,
+		"RAGQuery":            ragQ,
+		"RAGDomain":           ragD,
+		"RAGResults":          ragRes,
+		"RAGStatus":           ragStatus,
+		"WebQuery":            webQ,
+		"WebHits":             webHitsCopy,
+		"WebBrief":            webBriefCopy,
+		"AILearning":          learningStatus,
+		"LearnedRules":        learnedRules,
+		"VaultStatus":         vaultStatus,
+		"SwarmQuery":          swarmQ,
+		"SwarmMode":           swarmM,
+		"SwarmConsensus":      swarmConsensusCopy,
+		"SwarmAgents":         swarmAgents,
+		"GlobalSearchQuery":   globalSearchQ,
+		"GlobalSearchDomain":  globalSearchD,
+		"GlobalSearchResults": globalSearchRes,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -2186,6 +2243,222 @@ func (h *UIHandler) HandleStream(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprintf(w, "  </div>\n</body>\n</html>\n")
 	flusher.Flush()
+}
+
+// executeGlobalSearch runs a search query against the Python engine with automatic Go local fallback.
+func (h *UIHandler) executeGlobalSearch(query, domain string) {
+	cleanQ := strings.TrimSpace(query)
+	if cleanQ == "" {
+		return
+	}
+
+	payload := map[string]interface{}{
+		"query":  cleanQ,
+		"domain": domain,
+		"limit":  30,
+	}
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/workspace/search", h.cfg.EngineURL), bytes.NewReader(body))
+	if err == nil {
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := h.client.Do(req)
+		if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
+			defer resp.Body.Close()
+			var res WorkspaceSearchResponse
+			if err := json.NewDecoder(resp.Body).Decode(&res); err == nil {
+				h.mu.Lock()
+				h.globalSearchQuery = cleanQ
+				h.globalSearchDomain = domain
+				h.globalSearchResults = &res
+				h.mu.Unlock()
+				return
+			}
+		} else if resp != nil {
+			_ = resp.Body.Close()
+		}
+	}
+
+	// Resilient Fallback: Execute fast in-process Go workspace search
+	fallbackRes := h.executeGoLocalWorkspaceSearch(cleanQ, domain)
+	h.mu.Lock()
+	h.globalSearchQuery = cleanQ
+	h.globalSearchDomain = domain
+	h.globalSearchResults = fallbackRes
+	h.mu.Unlock()
+}
+
+// executeGoLocalWorkspaceSearch performs a pure standard-library scan of workspace files.
+func (h *UIHandler) executeGoLocalWorkspaceSearch(query, domain string) *WorkspaceSearchResponse {
+	queryLower := strings.ToLower(query)
+	filterDomain := strings.ToLower(domain)
+	if filterDomain == "" {
+		filterDomain = "all"
+	}
+
+	resp := &WorkspaceSearchResponse{
+		Query:   query,
+		Domain:  filterDomain,
+		Domains: map[string]int{"tech": 0, "science": 0, "finance": 0, "general": 0},
+		Results: []SearchResultItem{},
+	}
+
+	filesMatched := make(map[string]bool)
+
+	_ = filepath.Walk(h.workspaceDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info == nil {
+			return nil
+		}
+		name := info.Name()
+		if info.IsDir() {
+			if name == ".git" || name == ".flux_snapshots" || name == ".flux_temp" || name == "node_modules" || strings.HasPrefix(name, ".") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Only check text files under 1MB
+		if info.Size() > 1024*1024 {
+			return nil
+		}
+		ext := strings.ToLower(filepath.Ext(name))
+		textExts := map[string]bool{
+			".go": true, ".cpp": true, ".cc": true, ".cxx": true, ".h": true, ".hpp": true,
+			".py": true, ".rs": true, ".sql": true, ".sh": true, ".bat": true, ".ps1": true,
+			".md": true, ".txt": true, ".json": true, ".csv": true, ".tsv": true, ".yaml": true,
+			".yml": true, ".tex": true, ".html": true, ".css": true,
+		}
+		if !textExts[ext] {
+			return nil
+		}
+
+		relPath, _ := filepath.Rel(h.workspaceDir, path)
+		posixPath := filepath.ToSlash(relPath)
+
+		// Determine domain
+		fileDomain := "general"
+		if ext == ".go" || ext == ".cpp" || ext == ".cc" || ext == ".py" || ext == ".rs" || ext == ".sql" || ext == ".sh" || ext == ".ps1" {
+			fileDomain = "tech"
+		} else if ext == ".tex" || strings.Contains(posixPath, "science") {
+			fileDomain = "science"
+		} else if ext == ".csv" || ext == ".tsv" || strings.Contains(posixPath, "finance") {
+			fileDomain = "finance"
+		}
+
+		if filterDomain != "all" && fileDomain != filterDomain {
+			return nil
+		}
+
+		// Filename match
+		if strings.Contains(strings.ToLower(name), queryLower) {
+			resp.Results = append(resp.Results, SearchResultItem{
+				Path:       posixPath,
+				LineNumber: 1,
+				Snippet:    fmt.Sprintf("File: %s", name),
+				Domain:     fileDomain,
+				MatchType:  "file",
+				Score:      0.95,
+			})
+			filesMatched[posixPath] = true
+			resp.Domains[fileDomain]++
+		}
+
+		// Content scan
+		contentBytes, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+		lines := splitLines(string(contentBytes))
+		for idx, line := range lines {
+			if strings.Contains(strings.ToLower(line), queryLower) {
+				lineNum := idx + 1
+				snippet := strings.TrimSpace(line)
+				matchType := "exact"
+				score := 0.85
+
+				// Symbol detection
+				trimmed := strings.TrimSpace(line)
+				if strings.HasPrefix(trimmed, "func ") || strings.HasPrefix(trimmed, "type ") || strings.HasPrefix(trimmed, "def ") || strings.HasPrefix(trimmed, "class ") {
+					matchType = "symbol"
+					score = 0.95
+				}
+
+				startCtx := idx - 2
+				if startCtx < 0 {
+					startCtx = 0
+				}
+				endCtx := idx + 3
+				if endCtx > len(lines) {
+					endCtx = len(lines)
+				}
+				before := lines[startCtx:idx]
+				after := lines[idx+1 : endCtx]
+
+				resp.Results = append(resp.Results, SearchResultItem{
+					Path:          posixPath,
+					LineNumber:    lineNum,
+					Snippet:       snippet,
+					ContextBefore: before,
+					ContextAfter:  after,
+					Domain:        fileDomain,
+					MatchType:     matchType,
+					Score:         score,
+				})
+				filesMatched[posixPath] = true
+				resp.Domains[fileDomain]++
+				if len(resp.Results) >= 30 {
+					break
+				}
+			}
+		}
+		return nil
+	})
+
+	resp.TotalMatches = len(resp.Results)
+	resp.FilesMatched = len(filesMatched)
+	return resp
+}
+
+// HandleGlobalSearch processes universal search queries from the top-nav search bar.
+func (h *UIHandler) HandleGlobalSearch(w http.ResponseWriter, r *http.Request) {
+	theme := r.FormValue("theme")
+	if theme == "" {
+		theme = r.URL.Query().Get("theme")
+	}
+	if theme == "" {
+		theme = "light"
+	}
+
+	clear := r.URL.Query().Get("clear")
+	if clear == "1" || clear == "true" {
+		h.mu.Lock()
+		h.globalSearchQuery = ""
+		h.globalSearchDomain = "all"
+		h.globalSearchResults = nil
+		h.mu.Unlock()
+		http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+		return
+	}
+
+	query := strings.TrimSpace(r.FormValue("q"))
+	if query == "" {
+		query = strings.TrimSpace(r.FormValue("query"))
+	}
+	if query == "" {
+		query = strings.TrimSpace(r.URL.Query().Get("q"))
+	}
+	domain := strings.TrimSpace(r.FormValue("domain"))
+	if domain == "" {
+		domain = strings.TrimSpace(r.URL.Query().Get("domain"))
+	}
+	if domain == "" {
+		domain = "all"
+	}
+
+	if query != "" {
+		h.executeGlobalSearch(query, domain)
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s&q=%s&domain=%s", url.QueryEscape(theme), url.QueryEscape(query), url.QueryEscape(domain)), http.StatusSeeOther)
 }
 
 // ServeStatic exposes the embedded static asset file server.

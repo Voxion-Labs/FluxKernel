@@ -575,6 +575,58 @@ func TestUIHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("Universal Workspace & Cross-Domain Search (Phase 8)", func(t *testing.T) {
+		// Create sample test files in workspace
+		calcPath := filepath.Join(tempWorkspace, "calc.go")
+		_ = os.WriteFile(calcPath, []byte("package math\n\nfunc CalculateROI() int {\n\treturn 42\n}\n"), 0644)
+		csvPath := filepath.Join(tempWorkspace, "metrics.csv")
+		_ = os.WriteFile(csvPath, []byte("item,val\nroi,15.2\n"), 0644)
+
+		// 1. Dispatch search query
+		form := url.Values{}
+		form.Set("q", "CalculateROI")
+		form.Set("domain", "tech")
+		form.Set("theme", "light")
+
+		reqSearch := httptest.NewRequest(http.MethodGet, "/dashboard/search?"+form.Encode(), nil)
+		recSearch := httptest.NewRecorder()
+		h.HandleGlobalSearch(recSearch, reqSearch)
+
+		if recSearch.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on search dispatch, got %d", recSearch.Code)
+		}
+
+		// 2. Render dashboard with active search query
+		reqDashboard := httptest.NewRequest(http.MethodGet, "/dashboard?q=CalculateROI&domain=tech&theme=light", nil)
+		recDashboard := httptest.NewRecorder()
+		h.ServeHTTP(recDashboard, reqDashboard)
+
+		if recDashboard.Code != http.StatusOK {
+			t.Errorf("expected 200 OK rendering search results, got %d", recDashboard.Code)
+		}
+
+		dashBody := recDashboard.Body.String()
+		// Zero-JS verification
+		if strings.Contains(dashBody, "<script") {
+			t.Errorf("VIOLATION: <script> tag detected in search results rendering! Policy requires Zero-JS.")
+		}
+		if !strings.Contains(dashBody, "CalculateROI") {
+			t.Errorf("expected body to contain search query 'CalculateROI'")
+		}
+		if !strings.Contains(dashBody, "calc.go") {
+			t.Errorf("expected body to contain matched file 'calc.go'")
+		}
+
+		// 3. Clear search results
+		reqClear := httptest.NewRequest(http.MethodGet, "/dashboard/search?clear=1&theme=light", nil)
+		recClear := httptest.NewRecorder()
+		h.HandleGlobalSearch(recClear, reqClear)
+
+		if recClear.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect on clear search, got %d", recClear.Code)
+		}
+	})
+
 	t.Run("Static Asset Delivery (CSS Only, Zero JS)", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/static/css/dashboard.css", nil)
 		rec := httptest.NewRecorder()

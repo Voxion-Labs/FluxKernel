@@ -17,6 +17,7 @@ from app.api.routes import (
     learning,
     personas,
     rag,
+    search,
     swarm,
     tasks,
     telemetry,
@@ -73,6 +74,9 @@ app.include_router(swarm.router, prefix="/api/v1")  # Phase 6: Multi-Domain Agen
 app.include_router(
     telemetry.router, prefix="/api/v1"
 )  # Phase 7: Real-Time SSE Live Telemetry Streaming
+app.include_router(
+    search.router, prefix="/api/v1"
+)  # Phase 8: Universal Workspace & Cross-Domain Search
 
 
 @app.get("/", tags=["health"])
