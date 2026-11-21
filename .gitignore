@@ -43,3 +43,4 @@ npm-debug.log*
 .vercel
 .turbo
 fluxkernel.db
+.flux_sandboxes/

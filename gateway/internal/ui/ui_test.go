@@ -258,9 +258,11 @@ func TestUIHandler(t *testing.T) {
 		// Set up a pending diff batch
 		h.mu.Lock()
 		h.pendingDiffBatch = &DiffBatch{
-			BatchID:   "diff-test-1",
-			LoopID:    "loop-test-1",
-			Iteration: 1,
+			BatchID:    "diff-test-1",
+			LoopID:     "loop-test-1",
+			BranchName: "flux/task-loop-test-1",
+			BaseBranch: "main",
+			Iteration:  1,
 			Files: []DiffFile{
 				GenerateUnifiedDiff("math.go", "func Add(a, b int) int { return 0 }", "func Add(a, b int) int { return a + b }"),
 			},
@@ -268,6 +270,14 @@ func TestUIHandler(t *testing.T) {
 			CreatedAt: "12:00:00",
 		}
 		h.mu.Unlock()
+
+		// Verify isolated branch badge in HTML rendering
+		reqRender := httptest.NewRequest(http.MethodGet, "/dashboard?theme=light", nil)
+		recRender := httptest.NewRecorder()
+		h.ServeHTTP(recRender, reqRender)
+		if !strings.Contains(recRender.Body.String(), "flux/task-loop-test-1") {
+			t.Errorf("expected rendered HTML to contain isolated branch name 'flux/task-loop-test-1'")
+		}
 
 		// 1. Approve diff batch
 		apprForm := url.Values{}

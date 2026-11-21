@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import (
     autopilot,
+    branches,
     chat,
     feedback,
     files,
@@ -77,6 +78,7 @@ app.include_router(
 app.include_router(
     search.router, prefix="/api/v1"
 )  # Phase 8: Universal Workspace & Cross-Domain Search
+app.include_router(branches.router, prefix="/api/v1")  # Phase 9: Isolated Git Branching Sandbox
 
 
 @app.get("/", tags=["health"])

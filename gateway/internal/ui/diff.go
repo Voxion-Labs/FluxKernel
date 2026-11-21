@@ -33,12 +33,14 @@ type DiffFile struct {
 
 // DiffBatch represents a collection of file diffs produced by an agentic loop.
 type DiffBatch struct {
-	BatchID   string     `json:"batch_id"`
-	LoopID    string     `json:"loop_id"`
-	Iteration int        `json:"iteration"`
-	Files     []DiffFile `json:"files"`
-	Status    string     `json:"status"` // "pending" | "approved" | "rejected"
-	CreatedAt string     `json:"created_at"`
+	BatchID    string     `json:"batch_id"`
+	LoopID     string     `json:"loop_id"`
+	BranchName string     `json:"branch_name,omitempty"`
+	BaseBranch string     `json:"base_branch,omitempty"`
+	Iteration  int        `json:"iteration"`
+	Files      []DiffFile `json:"files"`
+	Status     string     `json:"status"` // "pending" | "approved" | "rejected"
+	CreatedAt  string     `json:"created_at"`
 }
 
 // GenerateUnifiedDiff computes an optimal line-by-line LCS unified diff.

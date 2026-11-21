@@ -1,7 +1,7 @@
 """
 rollback_manager.py — Atomic Workspace Snapshot & Instant Rollback Engine for FluxKernel.
 
-FAANG L8-Caliber Design:
+Design Principles:
 - Complete thread-safe state capture of the workspace prior to agent mutations.
 - Cryptographic SHA-256 integrity verification across all snapshots.
 - Reversible rollback operations: Automatically captures a safety pre-rollback snapshot.

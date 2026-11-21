@@ -194,6 +194,14 @@ async def run_agentic_loop(
     except Exception:
         pass
 
+    # Phase 9: Initialize isolated Git task branch sandbox
+    try:
+        from app.core.git_sandbox import GitSandboxManager
+
+        GitSandboxManager.create_sandbox(task_id=loop_id)
+    except Exception:
+        pass
+
     # Dynamically inject learned user rules into Auto-Pilot planner
     try:
         from app.tools.feedback_learner import build_rules_prompt_block
@@ -210,6 +218,12 @@ async def run_agentic_loop(
         # ── Check abort ───────────────────────────────────────────────────────
         if state.abort_flag:
             state.status = "aborted"
+            try:
+                from app.core.git_sandbox import GitSandboxManager
+
+                GitSandboxManager.abort_sandbox(loop_id)
+            except Exception:
+                pass
             await state.emit("loop_aborted", {"iteration": iteration})
             return
 
@@ -258,6 +272,12 @@ async def run_agentic_loop(
                 continue
             try:
                 write_file(path, content)
+                try:
+                    from app.core.git_sandbox import GitSandboxManager
+
+                    GitSandboxManager.write_file(loop_id, path, content)
+                except Exception:
+                    pass
                 code_map[path] = content
                 diff_entry = DiffEntry(path=path, content=content, iteration=iteration)
                 state.files_written.append(diff_entry)

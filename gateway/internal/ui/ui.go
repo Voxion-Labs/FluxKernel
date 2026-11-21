@@ -698,12 +698,14 @@ func (h *UIHandler) dispatchAutopilot(prompt, persona, now string) {
 		},
 	}
 	h.pendingDiffBatch = &DiffBatch{
-		BatchID:   fmt.Sprintf("diff-%s", simID),
-		LoopID:    simID,
-		Iteration: 1,
-		Files:     []DiffFile{sampleDiff},
-		Status:    "pending",
-		CreatedAt: time.Now().Format("15:04:05"),
+		BatchID:    fmt.Sprintf("diff-%s", simID),
+		LoopID:     simID,
+		BranchName: fmt.Sprintf("flux/task-%s", simID),
+		BaseBranch: "main",
+		Iteration:  1,
+		Files:      []DiffFile{sampleDiff},
+		Status:     "pending",
+		CreatedAt:  time.Now().Format("15:04:05"),
 	}
 	h.messages = append(h.messages, Message{
 		Role:      "agent",
@@ -1021,6 +1023,7 @@ func (h *UIHandler) HandleDiffApprove(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	if h.pendingDiffBatch != nil {
 		batchID := h.pendingDiffBatch.BatchID
+		loopID := h.pendingDiffBatch.LoopID
 		fileCount := len(h.pendingDiffBatch.Files)
 		h.pendingDiffBatch.Status = "approved"
 		h.pendingDiffBatch = nil
@@ -1031,6 +1034,14 @@ func (h *UIHandler) HandleDiffApprove(w http.ResponseWriter, r *http.Request) {
 			Content:   fmt.Sprintf("[DIFF APPROVED] Agentic mutations approved and merged (%d files).", fileCount),
 			Timestamp: time.Now().Format("15:04:05"),
 		})
+
+		// Notify Python engine to merge isolated task branch
+		go func(lID string) {
+			req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/branches/%s/merge", h.cfg.EngineURL, lID), nil)
+			if resp, err := h.client.Do(req); err == nil && resp != nil {
+				_ = resp.Body.Close()
+			}
+		}(loopID)
 	} else {
 		h.flashMessage = "No pending diff batch to approve."
 		h.flashType = "warning"
@@ -1076,6 +1087,7 @@ func (h *UIHandler) HandleDiffReject(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	if h.pendingDiffBatch != nil {
 		batchID := h.pendingDiffBatch.BatchID
+		loopID := h.pendingDiffBatch.LoopID
 		var filesAffected []string
 		for _, f := range h.pendingDiffBatch.Files {
 			filesAffected = append(filesAffected, f.Path)
@@ -1089,6 +1101,14 @@ func (h *UIHandler) HandleDiffReject(w http.ResponseWriter, r *http.Request) {
 			Content:   fmt.Sprintf("[DIFF REJECTED] Agentic mutations discarded. Reverted to snapshot %s. Failure pattern memorized into C++ SIMD Vault.", latestSnapshotID),
 			Timestamp: time.Now().Format("15:04:05"),
 		})
+
+		// Notify Python engine to abort and purge isolated git task branch
+		go func(lID string) {
+			req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/branches/%s/abort", h.cfg.EngineURL, lID), nil)
+			if resp, err := h.client.Do(req); err == nil && resp != nil {
+				_ = resp.Body.Close()
+			}
+		}(loopID)
 
 		// Notify feedback learner in background to avoid blocking
 		go func(bID string, fList []string) {
@@ -1265,12 +1285,14 @@ func (h *UIHandler) syncLoopStatusFromEngine(loopID string) {
 				if len(diffFiles) > 0 {
 					h.mu.Lock()
 					h.pendingDiffBatch = &DiffBatch{
-						BatchID:   fmt.Sprintf("diff-%s", statusResp.LoopID[:8]),
-						LoopID:    statusResp.LoopID,
-						Iteration: iter,
-						Files:     diffFiles,
-						Status:    "pending",
-						CreatedAt: ts,
+						BatchID:    fmt.Sprintf("diff-%s", statusResp.LoopID[:8]),
+						LoopID:     statusResp.LoopID,
+						BranchName: fmt.Sprintf("flux/task-%s", statusResp.LoopID[:8]),
+						BaseBranch: "main",
+						Iteration:  iter,
+						Files:      diffFiles,
+						Status:     "pending",
+						CreatedAt:  ts,
 					}
 					h.mu.Unlock()
 				}
