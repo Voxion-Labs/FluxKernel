@@ -138,14 +138,14 @@ def _build_fix_prompt(user_prompt: str, code_map: dict[str, str], stderr: str) -
 
 
 async def _call_llm(prompt: str, system: str, persona: str, sys_prompt: str) -> str:
-    from app.core.llm_router import route_llm
+    from app.core.flux_driver import FluxDriver
 
-    result = await route_llm(
+    result = await FluxDriver.generate(
         prompt=prompt,
-        persona_name=persona,
         system_prompt=system + "\n\n" + sys_prompt,
+        persona=persona,
     )
-    return result["content"]
+    return result.content
 
 
 def _parse_plan(raw: str) -> dict:

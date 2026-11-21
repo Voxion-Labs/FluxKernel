@@ -637,6 +637,63 @@ func TestUIHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("Phase 10: Sovereign AI Driver Switching & Status Badge", func(t *testing.T) {
+		// 1. Initial render: defaults to FLUX-NATIVE
+		reqInitial := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
+		recInitial := httptest.NewRecorder()
+		h.ServeHTTP(recInitial, reqInitial)
+
+		if recInitial.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d", recInitial.Code)
+		}
+		bodyInitial := recInitial.Body.String()
+		if !strings.Contains(bodyInitial, "FLUX-NATIVE") {
+			t.Errorf("expected initial dashboard to contain 'FLUX-NATIVE' badge, got: %s", bodyInitial)
+		}
+		if !strings.Contains(bodyInitial, "⚡ Flux-1.0 Native") {
+			t.Errorf("expected directive form to contain '⚡ Flux-1.0 Native' option")
+		}
+
+		// 2. Select another engine via HandleEngineSelect
+		form := url.Values{}
+		form.Set("engine", "gemini")
+		form.Set("theme", "light")
+		reqSelect := httptest.NewRequest(http.MethodPost, "/dashboard/engine/select", strings.NewReader(form.Encode()))
+		reqSelect.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recSelect := httptest.NewRecorder()
+
+		h.HandleEngineSelect(recSelect, reqSelect)
+		if recSelect.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect, got %d", recSelect.Code)
+		}
+
+		// 3. Render dashboard with switched engine
+		reqSwitched := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
+		recSwitched := httptest.NewRecorder()
+		h.ServeHTTP(recSwitched, reqSwitched)
+
+		bodySwitched := recSwitched.Body.String()
+		if !strings.Contains(bodySwitched, "GEMINI") {
+			t.Errorf("expected switched dashboard to display 'GEMINI' badge")
+		}
+		if strings.Contains(bodySwitched, "<script") {
+			t.Errorf("VIOLATION: Zero-JS policy broken in engine selection view")
+		}
+
+		// 4. Switch back to native sovereign engine
+		formNative := url.Values{}
+		formNative.Set("engine", "flux-native")
+		formNative.Set("theme", "light")
+		reqNative := httptest.NewRequest(http.MethodPost, "/dashboard/engine/select", strings.NewReader(formNative.Encode()))
+		reqNative.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recNative := httptest.NewRecorder()
+
+		h.HandleEngineSelect(recNative, reqNative)
+		if recNative.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect, got %d", recNative.Code)
+		}
+	})
+
 	t.Run("Static Asset Delivery (CSS Only, Zero JS)", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/static/css/dashboard.css", nil)
 		rec := httptest.NewRecorder()

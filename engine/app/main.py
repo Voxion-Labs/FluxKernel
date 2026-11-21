@@ -12,6 +12,7 @@ from app.api.routes import (
     autopilot,
     branches,
     chat,
+    driver,
     feedback,
     files,
     history,
@@ -79,6 +80,7 @@ app.include_router(
     search.router, prefix="/api/v1"
 )  # Phase 8: Universal Workspace & Cross-Domain Search
 app.include_router(branches.router, prefix="/api/v1")  # Phase 9: Isolated Git Branching Sandbox
+app.include_router(driver.router, prefix="/api/v1")  # Phase 10: Flux-1.0 Native AI Driver
 
 
 @app.get("/", tags=["health"])

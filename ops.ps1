@@ -92,6 +92,7 @@ function Invoke-Test() {
         python engine/tests/test_telemetry.py
         python engine/tests/test_workspace_search.py
         python engine/tests/test_git_sandbox.py
+        python engine/tests/test_flux_driver.py
         python engine/tests/test_e2e_triumvirate.py
         Write-Success "Python verification, sandbox security, rollback engine, and native bridge passed!"
     }

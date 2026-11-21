@@ -32,6 +32,11 @@
   </div>
 
   <div class="header-right">
+    <!-- Phase 10: Active Sovereign AI Driver Badge -->
+    <span class="badge badge-success" style="font-size: 10px; font-weight: 700;" title="Active Sovereign AI Inference Driver">
+      ⚡ {{ if .DriverStatus }}{{ .DriverStatus.ActiveEngine | upper }}{{ else }}FLUX-NATIVE{{ end }}
+    </span>
+
     <!-- Theme Switcher (Pure HTML - Light Default, Dark, System) -->
     <nav class="theme-switch" aria-label="Theme Selector">
       <a href="/dashboard?theme=light{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
@@ -667,6 +672,13 @@
           </label>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
+          <select name="engine" class="select-input" title="AI Inference Driver">
+            <option value="flux-native" {{ if or (not $.DriverStatus) (eq $.DriverStatus.ActiveEngine "flux-native") }}selected{{ end }}>⚡ Flux-1.0 Native</option>
+            <option value="gemini" {{ if and $.DriverStatus (eq $.DriverStatus.ActiveEngine "gemini") }}selected{{ end }}>🌐 Gemini Cloud</option>
+            <option value="anthropic" {{ if and $.DriverStatus (eq $.DriverStatus.ActiveEngine "anthropic") }}selected{{ end }}>🧠 Claude Cloud</option>
+            <option value="deepseek" {{ if and $.DriverStatus (eq $.DriverStatus.ActiveEngine "deepseek") }}selected{{ end }}>🐳 DeepSeek R1</option>
+            <option value="ollama" {{ if and $.DriverStatus (eq $.DriverStatus.ActiveEngine "ollama") }}selected{{ end }}>🦙 Ollama Local</option>
+          </select>
           <select name="persona" class="select-input">
             <option value="coder">Coder (Strict Architecture & TDD)</option>
             <option value="architect">Architect (System Design)</option>

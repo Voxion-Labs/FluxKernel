@@ -120,6 +120,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/dashboard/vault/vacuum", h.uiHandler.HandleVaultVacuum)
 	mux.HandleFunc("/dashboard/swarm/deliberate", h.uiHandler.HandleSwarmDeliberate)
 	mux.HandleFunc("/dashboard/search", h.uiHandler.HandleGlobalSearch)
+	mux.HandleFunc("/dashboard/engine/select", h.uiHandler.HandleEngineSelect)
 	mux.HandleFunc("/dashboard/stream", h.uiHandler.HandleStream)
 	mux.HandleFunc("/stream", h.uiHandler.HandleStream)
 	mux.Handle("/static/", h.uiHandler.ServeStatic())

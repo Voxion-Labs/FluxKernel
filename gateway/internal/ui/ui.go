@@ -221,6 +221,22 @@ type WorkspaceSearchResponse struct {
 	Results      []SearchResultItem `json:"results"`
 }
 
+// EngineOption represents an available AI driver in the system.
+type EngineOption struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Kind        string `json:"kind"`
+	Description string `json:"description"`
+	RequiresKey bool   `json:"requires_key"`
+	IsActive    bool   `json:"is_active"`
+}
+
+// DriverStatus represents the active AI inference driver and available options.
+type DriverStatus struct {
+	ActiveEngine     string         `json:"active_engine"`
+	AvailableEngines []EngineOption `json:"available_engines"`
+}
+
 // UIHandler manages server-side rendering of pure HTML/CSS templates (Zero-JS).
 type UIHandler struct {
 	cfg          *config.Config
@@ -254,6 +270,8 @@ type UIHandler struct {
 	globalSearchQuery   string
 	globalSearchDomain  string
 	globalSearchResults *WorkspaceSearchResponse
+
+	activeEngine string
 }
 
 // NewUIHandler initializes the template engine and sets up pure SSR handlers.
@@ -291,6 +309,7 @@ func NewUIHandler(cfg *config.Config) (*UIHandler, error) {
 		loopStatus: &LoopStatus{
 			Status: "idle",
 		},
+		activeEngine: "flux-native",
 	}, nil
 }
 
@@ -429,6 +448,11 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 	if h.globalSearchResults != nil {
 		globalSearchRes = h.globalSearchResults
 	}
+
+	activeEng := h.activeEngine
+	if activeEng == "" {
+		activeEng = "flux-native"
+	}
 	h.mu.Unlock()
 
 	ragStatus := h.fetchRAGStatus()
@@ -436,6 +460,7 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 	learnedRules := h.fetchLearnedRules()
 	vaultStatus := h.fetchVaultStatus()
 	swarmAgents := h.fetchSwarmAgents()
+	driverStatus := h.fetchDriverStatus()
 
 	data := map[string]interface{}{
 		"Title":               "FluxKernel — Enterprise Minimalist Console",
@@ -468,6 +493,8 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 		"GlobalSearchQuery":   globalSearchQ,
 		"GlobalSearchDomain":  globalSearchD,
 		"GlobalSearchResults": globalSearchRes,
+		"ActiveEngine":        activeEng,
+		"DriverStatus":        driverStatus,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -497,6 +524,22 @@ func (h *UIHandler) HandleDispatch(w http.ResponseWriter, r *http.Request) {
 	persona := strings.TrimSpace(r.FormValue("persona"))
 	if persona == "" {
 		persona = "coder"
+	}
+	engineID := strings.TrimSpace(r.FormValue("engine"))
+	if engineID != "" {
+		h.mu.Lock()
+		h.activeEngine = engineID
+		h.mu.Unlock()
+		go func(eng string) {
+			body, _ := json.Marshal(map[string]string{"engine": eng})
+			req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/driver/select", h.cfg.EngineURL), bytes.NewReader(body))
+			if err == nil {
+				req.Header.Set("Content-Type", "application/json")
+				if resp, err := h.client.Do(req); err == nil && resp != nil {
+					_ = resp.Body.Close()
+				}
+			}
+		}(engineID)
 	}
 	theme := r.FormValue("theme")
 	if theme == "" {
@@ -2481,6 +2524,83 @@ func (h *UIHandler) HandleGlobalSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s&q=%s&domain=%s", url.QueryEscape(theme), url.QueryEscape(query), url.QueryEscape(domain)), http.StatusSeeOther)
+}
+
+// fetchDriverStatus retrieves available AI inference drivers and current active selection.
+func (h *UIHandler) fetchDriverStatus() *DriverStatus {
+	h.mu.RLock()
+	active := h.activeEngine
+	if active == "" {
+		active = "flux-native"
+	}
+	h.mu.RUnlock()
+
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/driver/status", h.cfg.EngineURL), nil)
+	if err == nil {
+		resp, err := h.client.Do(req)
+		if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
+			defer resp.Body.Close()
+			var st DriverStatus
+			if err := json.NewDecoder(resp.Body).Decode(&st); err == nil {
+				return &st
+			}
+		} else if resp != nil {
+			_ = resp.Body.Close()
+		}
+	}
+
+	// Resilient fallback default using currently selected activeEngine
+	return &DriverStatus{
+		ActiveEngine: active,
+		AvailableEngines: []EngineOption{
+			{ID: "flux-native", Name: "Flux-1.0 (Native Sovereign Engine)", Kind: "native", IsActive: active == "flux-native"},
+			{ID: "gemini", Name: "Gemini 1.5 Flash (Cloud)", Kind: "cloud", RequiresKey: true, IsActive: active == "gemini"},
+			{ID: "anthropic", Name: "Claude 3.5 Sonnet (Cloud)", Kind: "cloud", RequiresKey: true, IsActive: active == "anthropic"},
+			{ID: "deepseek", Name: "DeepSeek R1 / V3", Kind: "cloud", RequiresKey: true, IsActive: active == "deepseek"},
+			{ID: "ollama", Name: "Ollama Local Llama-3", Kind: "local", IsActive: active == "ollama"},
+		},
+	}
+}
+
+// HandleEngineSelect switches the active AI driver across the sovereign platform.
+func (h *UIHandler) HandleEngineSelect(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	engineID := strings.TrimSpace(r.FormValue("engine"))
+	theme := r.FormValue("theme")
+	if theme == "" {
+		theme = "light"
+	}
+	if engineID == "" {
+		engineID = "flux-native"
+	}
+
+	h.mu.Lock()
+	h.activeEngine = engineID
+	h.flashMessage = fmt.Sprintf("✓ Active AI Driver switched to '%s'.", engineID)
+	h.flashType = "success"
+	h.mu.Unlock()
+
+	// Notify Python backend asynchronously
+	go func(eng string) {
+		body, _ := json.Marshal(map[string]string{"engine": eng})
+		req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/driver/select", h.cfg.EngineURL), bytes.NewReader(body))
+		if err == nil {
+			req.Header.Set("Content-Type", "application/json")
+			if resp, err := h.client.Do(req); err == nil && resp != nil {
+				_ = resp.Body.Close()
+			}
+		}
+	}(engineID)
+
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
 }
 
 // ServeStatic exposes the embedded static asset file server.
