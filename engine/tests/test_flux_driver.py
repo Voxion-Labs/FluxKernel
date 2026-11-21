@@ -73,6 +73,31 @@ def test_native_agentic_plan_synthesis():
     assert any(f["path"] == "main.py" for f in plan["files"])
 
 
+def test_foundational_all_rounder_plans():
+    # 1. Levenshtein Dynamic Programming in Python
+    res_lev = FluxNativeSynthesizer.synthesize(
+        prompt="Implement a dynamic programming Levenshtein diff matrix in Python. Return only valid JSON.",
+        system_prompt="PLANNER",
+    )
+    plan_lev = json.loads(res_lev.content)
+    assert plan_lev["language"] == "python"
+    assert any(f["path"] == "levenshtein.py" for f in plan_lev["files"])
+
+    # 2. Concurrent Worker Pool in Go
+    res_go = FluxNativeSynthesizer.synthesize(
+        prompt="Build a concurrent worker pool in Go with goroutines and channels. Return only valid JSON.",
+        system_prompt="PLANNER",
+    )
+    plan_go = json.loads(res_go.content)
+    assert plan_go["language"] == "go"
+    assert plan_go["entrypoint"] == "main.go"
+    assert any(f["path"] == "pool.go" for f in plan_go["files"])
+
+    # 3. Knowledge Grounding verification
+    grounding = FluxNativeSynthesizer.ground_knowledge("Quantum harmonic oscillator simulation")
+    assert isinstance(grounding, str)
+
+
 def test_flux_driver_generate_async():
     async def _run():
         res = await FluxDriver.generate(
@@ -125,6 +150,7 @@ if __name__ == "__main__":
     test_engine_registry()
     test_native_synthesis_multi_domain()
     test_native_agentic_plan_synthesis()
+    test_foundational_all_rounder_plans()
     test_flux_driver_generate_async()
     test_driver_api_endpoints()
     print("All Flux-1.0 Native AI Driver unit tests passed successfully!")

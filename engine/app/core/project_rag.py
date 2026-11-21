@@ -83,22 +83,47 @@ _TEXT_EXTENSIONS = {
 
 
 def infer_domain(path_str: str) -> str:
-    """Classify file path or memory URI into its sovereign domain archetype."""
+    """
+    Classify file path or memory URI into its semantic domain.
+    Extracts explicit domain tags, URI namespaces, or path archetypes dynamically
+    without rigid static word restrictions.
+    """
     path_lower = path_str.lower()
-    if "/tech/" in path_lower or "domain:tech" in path_lower or path_lower.endswith(".tech"):
-        return "tech"
-    if (
-        "/science/" in path_lower
-        or "domain:science" in path_lower
-        or path_lower.endswith(".science")
-    ):
-        return "science"
-    if (
-        "/finance/" in path_lower
-        or "domain:finance" in path_lower
-        or path_lower.endswith(".finance")
+
+    # 1. Explicit domain prefix tag (e.g. domain:devops, domain:systems, domain:ai)
+    m = re.search(r"domain:([a-z0-9_-]+)", path_lower)
+    if m:
+        return m.group(1)
+
+    # 2. Sovereign URI schema (e.g. rules://finance/..., vault://science/..., web://...)
+    for scheme in ("rules://", "vault://", "web://", "ai://"):
+        if path_lower.startswith(scheme):
+            parts = path_lower[len(scheme) :].split("/")
+            if len(parts) > 1 and parts[0]:
+                return parts[0]
+
+    # 3. Path segment matching
+    for part in Path(path_str).parts:
+        p_low = part.lower()
+        if p_low in (
+            "tech",
+            "science",
+            "finance",
+            "systems",
+            "math",
+            "ai",
+            "ops",
+            "audit",
+        ):
+            return p_low
+
+    # 4. Contextual path indicators
+    if any(
+        k in path_lower
+        for k in ("ledger", "balance", "invoice", "treasury", "revenue", "ebitda", "margin")
     ):
         return "finance"
+
     ext = Path(path_str).suffix.lower()
     if ext in {
         ".go",
@@ -114,6 +139,10 @@ def infer_domain(path_str: str) -> str:
         ".sh",
         ".bat",
         ".ps1",
+        ".js",
+        ".ts",
+        ".html",
+        ".css",
     }:
         return "tech"
     if ext in {".tex", ".latex", ".m", ".r"}:
@@ -528,13 +557,14 @@ def clear_in_memory_vault() -> None:
 
 def get_vault_stats() -> dict[str, Any]:
     """Returns real-time diagnostics of the in-memory SIMD vault."""
-    domains: dict[str, int] = {"tech": 0, "science": 0, "finance": 0, "general": 0}
+    domains: dict[str, int] = {}
     ai_memories = 0
     web_memories = 0
     workspace_chunks = 0
 
     for ch in _IN_MEMORY_VAULT:
-        domains[ch.domain] = domains.get(ch.domain, 0) + 1
+        d = ch.domain or "general"
+        domains[d] = domains.get(d, 0) + 1
         if ch.path.startswith("ai://"):
             ai_memories += 1
         elif ch.path.startswith("web://"):

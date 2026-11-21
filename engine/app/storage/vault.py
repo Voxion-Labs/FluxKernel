@@ -1,12 +1,12 @@
 """
 Sovereign Zero-Footprint Embedded Storage Vault (Phase 5).
 
-Provides FAANG-tier embedded local and cloud-compatible storage with:
+Provides high-assurance embedded local and cloud-compatible storage with:
 1. Zero Background Daemons (No Redis or external SQL server required for sovereign operation).
 2. 0% Idle RAM Guarantee: Automatic connection reclamation using scoped contexts and NullPool semantics.
 3. High-Performance SQLite Tuning:
    - PRAGMA journal_mode = WAL (Write-Ahead Logging for non-blocking concurrent reads)
-   - PRAGMA synchronous = NORMAL (FAANG production durability with minimal fsync latency)
+   - PRAGMA synchronous = NORMAL (Production durability with minimal fsync latency)
    - PRAGMA temp_store = MEMORY (In-RAM sorting/hashing buffers released on statement end)
    - PRAGMA mmap_size = 256MB (Zero-copy OS virtual memory paging directly from disk)
 4. Binary Vector Float BLOBs (Raw IEEE-754 32-bit floats with zero JSON serialization overhead).
@@ -98,7 +98,7 @@ class SovereignStorageVault:
     @contextmanager
     def get_connection(self) -> Generator[sqlite3.Connection, None, None]:
         """
-        Yields an isolated SQLite connection with FAANG-grade pragmas and guarantees
+        Yields an isolated SQLite connection with industrial-grade pragmas and guarantees
         immediate closure upon block exit to achieve 0% idle RAM.
         """
         conn = sqlite3.connect(

@@ -80,39 +80,28 @@ def _extract_code_snippets(text: str) -> list[ExtractedCode]:
 
 
 def _infer_turn_domain(prompt: str, response: str, snippets: list[ExtractedCode]) -> str:
-    """Classify conversation turn into tech, science, finance, or general."""
-    tech_langs = {
-        "c",
-        "cpp",
-        "cc",
-        "cxx",
-        "h",
-        "hpp",
-        "go",
-        "py",
-        "python",
-        "rs",
-        "rust",
-        "sql",
-        "sh",
-        "bash",
-        "ps1",
-        "html",
-        "css",
-        "dockerfile",
-        "json",
-        "yaml",
-    }
-    sci_langs = {"tex", "latex", "math", "matlab", "r", "julia"}
-    fin_langs = {"csv", "tsv", "accounting", "ledger"}
-
-    for s in snippets:
-        if s.lang in tech_langs:
-            return "tech"
-        if s.lang in sci_langs:
+    """
+    Classify conversation turn into a semantic domain dynamically.
+    Avoids static keyword dictionaries by leveraging code context and semantic anchors.
+    """
+    if snippets:
+        lang = snippets[0].lang.lower() if snippets[0].lang else ""
+        if lang in ("tex", "latex", "math"):
             return "science"
-        if s.lang in fin_langs:
-            return "finance"
+        return "tech"
+
+    # Analyze combined prompt/response text
+    combined = f"{prompt} {response[:250]}".lower()
+    if any(
+        k in combined
+        for k in ("equation", "theorem", "physics", "integral", "derivative", "quantum")
+    ):
+        return "science"
+    if any(
+        k in combined
+        for k in ("ledger", "revenue", "ebitda", "balance sheet", "margin", "valuation")
+    ):
+        return "finance"
 
     return "general"
 

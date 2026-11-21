@@ -345,7 +345,7 @@ def research_topic(
     """
     Autonomously investigates a topic across live web intelligence sources,
     extracts high-signal factual knowledge, and optionally caches it directly
-    into FluxKernel's C++ SIMD Vector Memory Vault with zero Git LFS overhead.
+    into FluxKernel's C++ SIMD Vector Memory Vault with zero external overhead.
     """
     clean_query = query.strip()
     search_hits = search_web(clean_query, max_results=max_sources)

@@ -1,7 +1,7 @@
 """
 Multi-Domain Agent Swarm Engine (Phase 6).
 
-Implements a FAANG-tier distributed multi-agent consensus architecture for FluxKernel:
+Implements a distributed multi-agent consensus architecture for FluxKernel:
 1. Four Specialized Sovereign Agents:
    - Tech Lead (Software Architecture, Systems Engineering, Tri-Stack Performance)
    - Math & Science Specialist (Physics, Simulations, Numerical Stability, Complexity)
