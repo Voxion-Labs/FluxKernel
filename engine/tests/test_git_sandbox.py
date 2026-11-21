@@ -64,6 +64,7 @@ def test_sandbox_abort():
 
         task_id = "test-beta-abort"
         meta = GitSandboxManager.create_sandbox(task_id=task_id, target_dir=root)
+        assert meta.status == "active"
 
         # Mutate inside sandbox
         GitSandboxManager.write_file(
