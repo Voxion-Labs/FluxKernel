@@ -44,7 +44,7 @@ class MemoryChunk:
 
 _IN_MEMORY_VAULT: list[MemoryChunk] = []
 
-# Multi-domain text extensions (Zero Node.js/TS, strictly tri-stack & multi-disciplinary)
+# Multi-domain text extensions (tri-stack & multi-disciplinary)
 _TEXT_EXTENSIONS = {
     # Tech & Systems Engineering
     ".go",

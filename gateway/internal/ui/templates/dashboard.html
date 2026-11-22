@@ -37,14 +37,14 @@
       ⚡ {{ if .DriverStatus }}{{ .DriverStatus.ActiveEngine | upper }}{{ else }}FLUX-NATIVE{{ end }}
     </span>
 
-    <!-- Theme Switcher (Pure HTML - Light Default, Dark, System) -->
+    <!-- Theme Switcher (System Default, Light, Dark) -->
     <nav class="theme-switch" aria-label="Theme Selector">
+      <a href="/dashboard?theme=system{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
+         class="theme-btn {{ if or (eq .Theme "system") (not .Theme) }}active{{ end }}">System</a>
       <a href="/dashboard?theme=light{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
          class="theme-btn {{ if eq .Theme "light" }}active{{ end }}">Light</a>
       <a href="/dashboard?theme=dark{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
          class="theme-btn {{ if eq .Theme "dark" }}active{{ end }}">Dark</a>
-      <a href="/dashboard?theme=system{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
-         class="theme-btn {{ if eq .Theme "system" }}active{{ end }}">System</a>
     </nav>
 
     <!-- Emergency Rollback Form -->
@@ -61,40 +61,40 @@
   </div>
 </header>
 
-<!-- Phase 11: Industrial Mission Control Telemetry Ribbon -->
+<!-- Industrial Mission Control Telemetry Ribbon -->
 <section class="mission-control-ribbon" aria-label="System Vitals">
   <div style="display: flex; gap: 16px; align-items: center;">
-    <div class="vital-item" title="Tri-Stack Go Gateway (:8080)">
+    <div class="vital-item" title="Network Gateway Router (:8080)">
       <span class="vital-dot online"></span>
-      <span>Go Gateway</span>
+      <span>Gateway: Active</span>
     </div>
-    <div class="vital-item" title="C++20 SIMD AVX2 Vector Vault">
+    <div class="vital-item" title="Semantic Vector Memory Vault">
       <span class="vital-dot online"></span>
-      <span>C++20 AVX2 (384-dim)</span>
+      <span>Vector Memory: Online</span>
     </div>
-    <div class="vital-item" title="Python Core Engine (:8000)">
+    <div class="vital-item" title="Cognitive Reasoning Core (:8000)">
       <span class="vital-dot online"></span>
-      <span>Python Engine</span>
+      <span>Core Engine: Ready</span>
     </div>
-    <div class="vital-item" title="Active AI Driver">
+    <div class="vital-item" title="Active AI Inference Driver">
       <span class="vital-dot accent"></span>
-      <span>Brain: <strong>{{ if .DriverStatus }}{{ .DriverStatus.ActiveEngine | upper }}{{ else }}FLUX-NATIVE{{ end }}</strong></span>
+      <span>Driver: <strong>{{ if .DriverStatus }}{{ .DriverStatus.ActiveEngine | upper }}{{ else }}FLUX-NATIVE{{ end }}</strong></span>
     </div>
   </div>
 
   <div style="display: flex; gap: 14px; align-items: center;">
-    <div class="vital-item" title="Embedded SQLite Storage Vault">
-      <span>Vault: <strong>{{ if .VaultStatus }}{{ .VaultStatus.DatabaseSizeKB }} KB{{ else }}WAL{{ end }}</strong></span>
-      <span class="metric-pill">0% Idle RAM</span>
+    <div class="vital-item" title="Embedded Storage Vault">
+      <span>Storage: <strong>{{ if .VaultStatus }}{{ .VaultStatus.DatabaseSizeKB }} KB{{ else }}Nominal{{ end }}</strong></span>
+      <span class="metric-pill">Active</span>
     </div>
-    <div class="vital-item" title="Isolated Git Task Sandboxes (Phase 9 & 11)">
+    <div class="vital-item" title="Isolated Task Sandboxes">
       <span>Sandboxes: <strong>{{ len .Sandboxes }}</strong></span>
     </div>
-    <div class="vital-item" title="Learned Sovereign Rules">
+    <div class="vital-item" title="Learned Domain Rules">
       <span>Rules: <strong>{{ len .LearnedRules }}</strong></span>
     </div>
     <a href="/dashboard/stream" target="_blank" class="vital-item" style="text-decoration: none; color: var(--accent); font-weight: 600;" title="Real-Time Server-Sent Events Stream">
-      📡 SSE Telemetry
+      Live Telemetry ➔
     </a>
   </div>
 </section>
@@ -261,14 +261,14 @@
       </div>
 
       <div class="pane-header" style="margin-top: 16px; border-top: 1px solid var(--border);">
-        <span>C++ SIMD Vector Memory</span>
-        <span class="badge badge-info" style="font-size: 10px;">{{ if .RAGStatus }}{{ .RAGStatus.TotalChunks }} chunks{{ else }}SIMD{{ end }}</span>
+        <span>Semantic Vector Memory</span>
+        <span class="badge badge-info" style="font-size: 10px;">{{ if .RAGStatus }}{{ .RAGStatus.TotalChunks }} chunks{{ else }}Active{{ end }}</span>
       </div>
       <div style="padding: 10px 8px;">
         <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
           <form method="POST" action="/dashboard/rag/index" style="margin: 0; flex: 1;">
             <input type="hidden" name="theme" value="{{ $.Theme }}">
-            <button type="submit" class="btn-restore" style="width: 100%;" title="Scan & index workspace files into C++ SIMD Vector Memory">
+            <button type="submit" class="btn-restore" style="width: 100%;" title="Scan & index workspace files into Vector Memory">
               ⚡ Re-Index Workspace
             </button>
           </form>
@@ -401,7 +401,7 @@
             <textarea name="raw_content" class="code-editor" style="height: 75px; font-size: 10px; width: 100%; box-sizing: border-box; resize: vertical;" placeholder="Paste JSON export, Composer logs, or chat transcripts here..." required></textarea>
           </div>
           <div style="display: flex; gap: 4px;">
-            <button type="submit" class="btn-primary" style="font-size: 11px; padding: 4px 8px; flex: 1;">🧠 Memorize into SIMD Vault ➔</button>
+            <button type="submit" class="btn-primary" style="font-size: 11px; padding: 4px 8px; flex: 1;">🧠 Memorize into Vector Vault ➔</button>
             {{ if and .AILearning (gt .AILearning.TotalSessions 0) }}
             <button type="submit" formaction="/dashboard/learning/clear" class="btn-discard" style="font-size: 11px; padding: 4px 6px;" title="Clear ingested AI memory">Clear</button>
             {{ end }}
@@ -498,11 +498,11 @@
           {{ if .VaultStatus }}
           <div><strong>Engine:</strong> SQLite 3 (WAL / Memory-Mapped)</div>
           <div><strong>Footprint:</strong> {{ .VaultStatus.DatabaseSizeKB }} KB (Active handles: {{ .VaultStatus.ActiveConnections }})</div>
-          <div><strong>Vault Contents:</strong> {{ .VaultStatus.DocumentsCount }} docs | {{ .VaultStatus.ChunksCount }} SIMD chunks | {{ .VaultStatus.RulesCount }} rules</div>
-          <div><strong>Task Queue:</strong> {{ .VaultStatus.TasksCount }} embedded jobs (Zero Redis Daemon)</div>
+          <div><strong>Vault Contents:</strong> {{ .VaultStatus.DocumentsCount }} docs | {{ .VaultStatus.ChunksCount }} vector chunks | {{ .VaultStatus.RulesCount }} rules</div>
+          <div><strong>Task Queue:</strong> {{ .VaultStatus.TasksCount }} embedded tasks</div>
           {{ else }}
-          <div><strong>Status:</strong> Sovereign Embedded Engine Active</div>
-          <div><strong>Mode:</strong> Zero Background Daemons / 0% Idle RAM</div>
+          <div><strong>Status:</strong> Sovereign Embedded Storage Active</div>
+          <div><strong>Mode:</strong> Zero Overhead / Efficient Storage</div>
           {{ end }}
         </div>
         <div style="display: flex; gap: 4px;">
@@ -898,7 +898,7 @@
     <!-- Scrollable Conversation Ledger -->
     <div class="conversation-scroll">
       <div class="msg-card system">
-        [SYSTEM INITIALIZED] FluxKernel Tri-Stack (Go + C++20 + Python). Pure HTML/CSS Sovereign Surface.
+        [SYSTEM INITIALIZED] FluxKernel Mission Control online. System ready for directives.
       </div>
 
       {{ range .Messages }}
@@ -1008,13 +1008,13 @@
 <!-- Enterprise Minimalist Status Footer -->
 <footer class="app-footer">
   <div class="footer-tags">
-    <span>GATEWAY: <strong>:8080</strong> (Go 1.23)</span>
-    <span>ENGINE: <strong>:8000</strong> (Python 3.11)</span>
-    <span>ACCELERATOR: <strong>C++20 Native ABI</strong></span>
-    <span>BACKEND TS: <strong style="color: var(--success);">0% (INDEPENDENT)</strong></span>
+    <span>SYSTEM: <strong>OPERATIONAL</strong></span>
+    <span>GATEWAY: <strong>:8080</strong></span>
+    <span>INFERENCE: <strong>ONLINE</strong></span>
+    <span>STORAGE: <strong>SYNCED</strong></span>
   </div>
   <div>
-    <span>POLICY: <strong>PURE HTML/CSS (ZERO JS)</strong></span>
+    <span>RUNTIME: <strong>LIGHTWEIGHT SSR</strong></span>
   </div>
 </footer>
 {{ end }}

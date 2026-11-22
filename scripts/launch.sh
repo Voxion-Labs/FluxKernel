@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # FluxKernel 1-Click Production Launcher (Linux & macOS)
-# Approach A: Embedded Local Daemon + Native OS WebView (Zero Electron, Zero Node.js)
+# Approach A: Embedded Local Daemon + Native OS WebView
 # ==============================================================================
 set -euo pipefail
 
@@ -163,7 +163,7 @@ echo -e "${CYAN}================================================================
 if [ "${NO_BROWSER}" -eq 0 ]; then
     if [ "${OS_NAME}" = "Darwin" ]; then
         if [ -d "/Applications/Google Chrome.app" ]; then
-            echo -e "  ${YELLOW}[INFO]${NC} Launching Chrome App Mode (0% Electron, native window)..."
+            echo -e "  ${YELLOW}[INFO]${NC} Launching Chrome App Mode (native window)..."
             open -na "Google Chrome" --args "--app=${LOCAL_URL}" "--window-size=1366,860" || open "${LOCAL_URL}"
         else
             open "${LOCAL_URL}"

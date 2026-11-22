@@ -1,7 +1,7 @@
 ﻿<#
 .SYNOPSIS
     FluxKernel 1-Click Production Launcher (Windows)
-    Approach A: Embedded Local Daemon + Native OS WebView (Zero Electron, Zero Node.js)
+    Approach A: Embedded Local Daemon + Native OS WebView
 
 .DESCRIPTION
     Compiles static gateway binary, launches Python cognitive brain and Go gateway daemons,
@@ -184,7 +184,7 @@ if (-not $NoBrowser) {
     }
 
     if ($FoundEdge) {
-        Write-Info "Launching Native OS WebView Window (Edge App Mode - 0% Electron, <15MB RAM)..."
+        Write-Info "Launching Native OS WebView Window (Edge App Mode, <15MB RAM)..."
         $TempProfile = Join-Path $env:TEMP "fluxkernel_webview_profile"
         $EdgeArgs = @(
             "--app=$LocalUrl",

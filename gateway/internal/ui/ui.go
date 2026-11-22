@@ -335,19 +335,24 @@ func (h *UIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func resolveTheme(raw string) string {
+	switch raw {
+	case "light", "dark", "system":
+		return raw
+	default:
+		return "system"
+	}
+}
+
 func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request) {
-	// Theme selection: defaults to "light"
+	// Theme selection: defaults to "system"
 	theme := r.URL.Query().Get("theme")
 	if theme == "" {
 		if cookie, err := r.Cookie("flux_theme"); err == nil && cookie.Value != "" {
 			theme = cookie.Value
-		} else {
-			theme = "light" // Default theme: Light
 		}
 	}
-	if theme != "light" && theme != "dark" && theme != "system" {
-		theme = "light"
-	}
+	theme = resolveTheme(theme)
 
 	// Active Domain Hub tab (Phase 11): overview (default), tech, science, finance, research, memory, swarm, vault, all
 	tab := strings.TrimSpace(r.URL.Query().Get("tab"))
@@ -563,7 +568,7 @@ func (h *UIHandler) HandleDispatch(w http.ResponseWriter, r *http.Request) {
 	}
 	theme := r.FormValue("theme")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 	activeFile := r.FormValue("file")
 
@@ -800,7 +805,7 @@ func (h *UIHandler) HandleAbortLoop(w http.ResponseWriter, r *http.Request) {
 	loopID := r.FormValue("loop_id")
 	theme := r.FormValue("theme")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 	activeFile := r.FormValue("file")
 
@@ -868,7 +873,7 @@ func (h *UIHandler) HandleFileWrite(w http.ResponseWriter, r *http.Request) {
 	content := r.FormValue("content")
 	theme := r.FormValue("theme")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	cleanRel := filepath.Clean(relPath)
@@ -952,7 +957,7 @@ func (h *UIHandler) HandleFileCreate(w http.ResponseWriter, r *http.Request) {
 	content := r.FormValue("content")
 	theme := r.FormValue("theme")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	cleanRel := filepath.Clean(filename)
@@ -1021,7 +1026,7 @@ func (h *UIHandler) HandleFileDelete(w http.ResponseWriter, r *http.Request) {
 	relPath := strings.TrimSpace(r.FormValue("file"))
 	theme := r.FormValue("theme")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	cleanRel := filepath.Clean(relPath)
@@ -1090,7 +1095,7 @@ func (h *UIHandler) HandleDiffApprove(w http.ResponseWriter, r *http.Request) {
 
 	theme := r.FormValue("theme")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	h.mu.Lock()
@@ -1138,7 +1143,7 @@ func (h *UIHandler) HandleDiffReject(w http.ResponseWriter, r *http.Request) {
 
 	theme := r.FormValue("theme")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	snaps := h.getSnapshots()
@@ -1422,7 +1427,7 @@ func (h *UIHandler) HandleRollback(w http.ResponseWriter, r *http.Request) {
 	snapshotID := r.FormValue("snapshot_id")
 	theme := r.FormValue("theme")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	if snapshotID == "" {
@@ -1547,7 +1552,7 @@ func (h *UIHandler) HandleRAGIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	theme := r.FormValue("theme")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/rag/index", nil)
@@ -1579,7 +1584,7 @@ func (h *UIHandler) HandleRAGSearch(w http.ResponseWriter, r *http.Request) {
 		theme = r.URL.Query().Get("theme")
 	}
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	clear := r.URL.Query().Get("clear")
@@ -1662,7 +1667,7 @@ func (h *UIHandler) HandleWebSearch(w http.ResponseWriter, r *http.Request) {
 		theme = r.URL.Query().Get("theme")
 	}
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	clear := r.URL.Query().Get("clear")
@@ -1786,7 +1791,7 @@ func (h *UIHandler) HandleAILearningIngest(w http.ResponseWriter, r *http.Reques
 		theme = r.URL.Query().Get("theme")
 	}
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	source := strings.TrimSpace(r.FormValue("source"))
@@ -1877,7 +1882,7 @@ func (h *UIHandler) HandleAILearningClear(w http.ResponseWriter, r *http.Request
 		theme = r.URL.Query().Get("theme")
 	}
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/learning/clear", nil)
@@ -1924,7 +1929,7 @@ func (h *UIHandler) HandleRuleAdd(w http.ResponseWriter, r *http.Request) {
 		theme = r.URL.Query().Get("theme")
 	}
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	directive := strings.TrimSpace(r.FormValue("directive"))
@@ -1983,7 +1988,7 @@ func (h *UIHandler) HandleRuleDelete(w http.ResponseWriter, r *http.Request) {
 		theme = r.URL.Query().Get("theme")
 	}
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	ruleID := strings.TrimSpace(r.FormValue("rule_id"))
@@ -2049,7 +2054,7 @@ func (h *UIHandler) HandleVaultCheckpoint(w http.ResponseWriter, r *http.Request
 		theme = r.URL.Query().Get("theme")
 	}
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/vault/checkpoint", nil)
@@ -2091,7 +2096,7 @@ func (h *UIHandler) HandleVaultVacuum(w http.ResponseWriter, r *http.Request) {
 		theme = r.URL.Query().Get("theme")
 	}
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	req, err := http.NewRequest(http.MethodPost, h.cfg.EngineURL+"/api/v1/vault/vacuum", nil)
@@ -2153,7 +2158,7 @@ func (h *UIHandler) HandleSwarmDeliberate(w http.ResponseWriter, r *http.Request
 		theme = r.URL.Query().Get("theme")
 	}
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	prompt := strings.TrimSpace(r.FormValue("prompt"))
@@ -2234,7 +2239,7 @@ func (h *UIHandler) HandleStream(w http.ResponseWriter, r *http.Request) {
 
 	theme := r.URL.Query().Get("theme")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	accept := r.Header.Get("Accept")
@@ -2520,7 +2525,7 @@ func (h *UIHandler) HandleGlobalSearch(w http.ResponseWriter, r *http.Request) {
 		theme = r.URL.Query().Get("theme")
 	}
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 
 	clear := r.URL.Query().Get("clear")
@@ -2606,7 +2611,7 @@ func (h *UIHandler) HandleEngineSelect(w http.ResponseWriter, r *http.Request) {
 	engineID := strings.TrimSpace(r.FormValue("engine"))
 	theme := r.FormValue("theme")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 	if engineID == "" {
 		engineID = "flux-native"
@@ -2665,7 +2670,7 @@ func (h *UIHandler) HandleSandboxCreate(w http.ResponseWriter, r *http.Request) 
 	theme := r.FormValue("theme")
 	tab := r.FormValue("tab")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 	if tab == "" {
 		tab = "tech"
@@ -2704,7 +2709,7 @@ func (h *UIHandler) HandleSandboxMerge(w http.ResponseWriter, r *http.Request) {
 	theme := r.FormValue("theme")
 	tab := r.FormValue("tab")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 	if tab == "" {
 		tab = "tech"
@@ -2738,7 +2743,7 @@ func (h *UIHandler) HandleSandboxAbort(w http.ResponseWriter, r *http.Request) {
 	theme := r.FormValue("theme")
 	tab := r.FormValue("tab")
 	if theme == "" {
-		theme = "light"
+		theme = "system"
 	}
 	if tab == "" {
 		tab = "tech"

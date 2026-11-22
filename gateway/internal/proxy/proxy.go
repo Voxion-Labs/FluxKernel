@@ -128,7 +128,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/stream", h.uiHandler.HandleStream)
 	mux.Handle("/static/", h.uiHandler.ServeStatic())
 
-	// High-Performance Services (replacing TypeScript Next.js API routes)
+	// High-Performance Core Services
 	mux.Handle("/api/chat", h.chatHandler)
 	mux.Handle("/api/chat/", h.chatHandler)
 

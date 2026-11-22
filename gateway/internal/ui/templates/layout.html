@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="{{ if .Theme }}{{ .Theme }}{{ else }}light{{ end }}">
+<html lang="en" data-theme="{{ if .Theme }}{{ .Theme }}{{ else }}system{{ end }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ .Title }}</title>
   <link rel="icon" type="image/svg+xml" href="/static/img/logo.svg">
   <link rel="stylesheet" href="/static/css/dashboard.css">
-  <!-- 100% Pure HTML/CSS — Compliant with strict Enterprise Zero-JS Policies -->
+  <!-- Minimalist Server-Side Rendered Interface -->
 </head>
 <body>
   {{ block "content" . }}{{ end }}

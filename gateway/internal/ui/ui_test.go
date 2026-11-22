@@ -25,7 +25,7 @@ func TestUIHandler(t *testing.T) {
 		t.Fatalf("Failed to initialize UIHandler: %v", err)
 	}
 
-	t.Run("Default Theme is Light", func(t *testing.T) {
+	t.Run("Default Theme is System", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
 		rec := httptest.NewRecorder()
 
@@ -36,8 +36,8 @@ func TestUIHandler(t *testing.T) {
 		}
 
 		body := rec.Body.String()
-		if !strings.Contains(body, `data-theme="light"`) {
-			t.Errorf("expected default theme to be light, body: %s", body)
+		if !strings.Contains(body, `data-theme="system"`) {
+			t.Errorf("expected default theme to be system, body: %s", body)
 		}
 
 		// Ensure ZERO JavaScript policy compliance
@@ -50,6 +50,22 @@ func TestUIHandler(t *testing.T) {
 		}
 		if !strings.Contains(body, "Emergency Rollback") {
 			t.Errorf("body missing 'Emergency Rollback'")
+		}
+	})
+
+	t.Run("Light Theme Query Override", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/dashboard?theme=light", nil)
+		rec := httptest.NewRecorder()
+
+		h.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d", rec.Code)
+		}
+
+		body := rec.Body.String()
+		if !strings.Contains(body, `data-theme="light"`) {
+			t.Errorf("expected light theme override in body")
 		}
 	})
 

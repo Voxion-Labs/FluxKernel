@@ -5,7 +5,7 @@ Validates that FluxKernel's tri-stack backend operates harmoniously:
 1. Go Gateway architecture & routing definitions
 2. C++20 Native Acceleration & ABI Bridge
 3. Python Cognitive Engine & Multi-Language Sandboxed Execution
-4. Complete absence of TypeScript / JavaScript in the backend
+4. Clean backend boundaries and supported language enforcement
 """
 
 import sys
