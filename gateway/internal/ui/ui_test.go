@@ -694,6 +694,106 @@ func TestUIHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("Phase 11: Industrial Mission Control UI & Domain Hub", func(t *testing.T) {
+		// 1. Overview Workspace rendering
+		reqOverview := httptest.NewRequest(http.MethodGet, "/dashboard?tab=overview&theme=light", nil)
+		recOverview := httptest.NewRecorder()
+		h.ServeHTTP(recOverview, reqOverview)
+
+		if recOverview.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for overview tab, got %d", recOverview.Code)
+		}
+		bodyOverview := recOverview.Body.String()
+		if !strings.Contains(bodyOverview, "mission-control-ribbon") {
+			t.Errorf("expected body to contain 'mission-control-ribbon'")
+		}
+		if !strings.Contains(bodyOverview, "domain-hub-bar") {
+			t.Errorf("expected body to contain 'domain-hub-bar'")
+		}
+		if !strings.Contains(bodyOverview, "OVERVIEW") {
+			t.Errorf("expected body to contain 'OVERVIEW' active hub badge")
+		}
+		if !strings.Contains(bodyOverview, "Git Task Sandboxes") {
+			t.Errorf("expected body to contain 'Git Task Sandboxes'")
+		}
+		if strings.Contains(bodyOverview, "<script") {
+			t.Errorf("VIOLATION: Zero-JS policy broken in overview tab")
+		}
+
+		// 2. Tech Domain Hub rendering
+		reqTech := httptest.NewRequest(http.MethodGet, "/dashboard?tab=tech&theme=light", nil)
+		recTech := httptest.NewRecorder()
+		h.ServeHTTP(recTech, reqTech)
+		bodyTech := recTech.Body.String()
+		if !strings.Contains(bodyTech, "Systems & Engineering Launchpad") {
+			t.Errorf("expected Tech tab to contain 'Systems & Engineering Launchpad'")
+		}
+		if !strings.Contains(bodyTech, "Go Worker Pool") {
+			t.Errorf("expected Tech tab to contain 'Go Worker Pool' preset")
+		}
+
+		// 3. Science Domain Hub rendering
+		reqSci := httptest.NewRequest(http.MethodGet, "/dashboard?tab=science&theme=light", nil)
+		recSci := httptest.NewRecorder()
+		h.ServeHTTP(recSci, reqSci)
+		bodySci := recSci.Body.String()
+		if !strings.Contains(bodySci, "Science & Quantitative Launchpad") {
+			t.Errorf("expected Science tab to contain 'Science & Quantitative Launchpad'")
+		}
+		if !strings.Contains(bodySci, "Physics Decay") {
+			t.Errorf("expected Science tab to contain 'Physics Decay' preset")
+		}
+
+		// 4. Finance Domain Hub rendering
+		reqFin := httptest.NewRequest(http.MethodGet, "/dashboard?tab=finance&theme=light", nil)
+		recFin := httptest.NewRecorder()
+		h.ServeHTTP(recFin, reqFin)
+		bodyFin := recFin.Body.String()
+		if !strings.Contains(bodyFin, "Finance & Economics Launchpad") {
+			t.Errorf("expected Finance tab to contain 'Finance & Economics Launchpad'")
+		}
+		if !strings.Contains(bodyFin, "Cash Flow Audit") {
+			t.Errorf("expected Finance tab to contain 'Cash Flow Audit' preset")
+		}
+
+		// 5. Sandbox handlers testing (Create, Merge, Abort)
+		formCreate := url.Values{}
+		formCreate.Set("task_id", "test-task-ui")
+		formCreate.Set("theme", "light")
+		formCreate.Set("tab", "tech")
+		reqCreate := httptest.NewRequest(http.MethodPost, "/dashboard/sandbox/create", strings.NewReader(formCreate.Encode()))
+		reqCreate.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recCreate := httptest.NewRecorder()
+		h.HandleSandboxCreate(recCreate, reqCreate)
+		if recCreate.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 redirect on sandbox create, got %d", recCreate.Code)
+		}
+
+		formMerge := url.Values{}
+		formMerge.Set("task_id", "test-task-ui")
+		formMerge.Set("theme", "light")
+		formMerge.Set("tab", "tech")
+		reqMerge := httptest.NewRequest(http.MethodPost, "/dashboard/sandbox/merge", strings.NewReader(formMerge.Encode()))
+		reqMerge.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recMerge := httptest.NewRecorder()
+		h.HandleSandboxMerge(recMerge, reqMerge)
+		if recMerge.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 redirect on sandbox merge, got %d", recMerge.Code)
+		}
+
+		formAbort := url.Values{}
+		formAbort.Set("task_id", "test-task-ui")
+		formAbort.Set("theme", "light")
+		formAbort.Set("tab", "tech")
+		reqAbort := httptest.NewRequest(http.MethodPost, "/dashboard/sandbox/abort", strings.NewReader(formAbort.Encode()))
+		reqAbort.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recAbort := httptest.NewRecorder()
+		h.HandleSandboxAbort(recAbort, reqAbort)
+		if recAbort.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 redirect on sandbox abort, got %d", recAbort.Code)
+		}
+	})
+
 	t.Run("Static Asset Delivery (CSS Only, Zero JS)", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/static/css/dashboard.css", nil)
 		rec := httptest.NewRecorder()

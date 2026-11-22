@@ -237,6 +237,18 @@ type DriverStatus struct {
 	AvailableEngines []EngineOption `json:"available_engines"`
 }
 
+// SandboxMeta represents an isolated git branching sandbox for safe task execution (Phase 9 & 11).
+type SandboxMeta struct {
+	TaskID        string   `json:"task_id"`
+	BranchName    string   `json:"branch_name"`
+	BaseBranch    string   `json:"base_branch"`
+	SandboxPath   string   `json:"sandbox_path"`
+	Mode          string   `json:"mode"`
+	Status        string   `json:"status"`
+	CreatedAt     string   `json:"created_at"`
+	FilesModified []string `json:"files_modified"`
+}
+
 // UIHandler manages server-side rendering of pure HTML/CSS templates (Zero-JS).
 type UIHandler struct {
 	cfg          *config.Config
@@ -335,6 +347,12 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 	}
 	if theme != "light" && theme != "dark" && theme != "system" {
 		theme = "light"
+	}
+
+	// Active Domain Hub tab (Phase 11): overview (default), tech, science, finance, research, memory, swarm, vault, all
+	tab := strings.TrimSpace(r.URL.Query().Get("tab"))
+	if tab == "" {
+		tab = "overview"
 	}
 
 	// Active file selection
@@ -495,6 +513,8 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 		"GlobalSearchResults": globalSearchRes,
 		"ActiveEngine":        activeEng,
 		"DriverStatus":        driverStatus,
+		"ActiveTab":           tab,
+		"Sandboxes":           h.fetchSandboxes(),
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -557,7 +577,12 @@ func (h *UIHandler) HandleDispatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	redirectURL := fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme))
+	tab := r.FormValue("tab")
+	if tab == "" {
+		tab = "overview"
+	}
+
+	redirectURL := fmt.Sprintf("/dashboard?tab=%s&theme=%s", url.QueryEscape(tab), url.QueryEscape(theme))
 	if activeFile != "" {
 		redirectURL += fmt.Sprintf("&file=%s", url.QueryEscape(activeFile))
 	}
@@ -815,7 +840,12 @@ func (h *UIHandler) HandleAbortLoop(w http.ResponseWriter, r *http.Request) {
 		h.mu.Unlock()
 	}
 
-	redirectURL := fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme))
+	tab := r.FormValue("tab")
+	if tab == "" {
+		tab = "overview"
+	}
+
+	redirectURL := fmt.Sprintf("/dashboard?tab=%s&theme=%s", url.QueryEscape(tab), url.QueryEscape(theme))
 	if activeFile != "" {
 		redirectURL += fmt.Sprintf("&file=%s", url.QueryEscape(activeFile))
 	}
@@ -2601,6 +2631,131 @@ func (h *UIHandler) HandleEngineSelect(w http.ResponseWriter, r *http.Request) {
 	}(engineID)
 
 	http.Redirect(w, r, fmt.Sprintf("/dashboard?theme=%s", url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+// fetchSandboxes retrieves all active and historical isolated git task branches.
+func (h *UIHandler) fetchSandboxes() []SandboxMeta {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/branches", h.cfg.EngineURL), nil)
+	if err == nil {
+		resp, err := h.client.Do(req)
+		if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
+			defer resp.Body.Close()
+			var list []SandboxMeta
+			if err := json.NewDecoder(resp.Body).Decode(&list); err == nil {
+				return list
+			}
+		} else if resp != nil {
+			_ = resp.Body.Close()
+		}
+	}
+	return nil
+}
+
+// HandleSandboxCreate creates an isolated git task branch sandbox.
+func (h *UIHandler) HandleSandboxCreate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	taskID := strings.TrimSpace(r.FormValue("task_id"))
+	theme := r.FormValue("theme")
+	tab := r.FormValue("tab")
+	if theme == "" {
+		theme = "light"
+	}
+	if tab == "" {
+		tab = "tech"
+	}
+	if taskID == "" {
+		taskID = fmt.Sprintf("task-%x", time.Now().UnixNano()%0xffffff)
+	}
+
+	body, _ := json.Marshal(map[string]string{"task_id": taskID})
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/branches/create", h.cfg.EngineURL), bytes.NewReader(body))
+	if err == nil {
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := h.client.Do(req)
+		if err == nil && resp != nil {
+			_ = resp.Body.Close()
+			h.mu.Lock()
+			h.flashMessage = fmt.Sprintf("✓ Created isolated sandbox '%s'. Original workspace protected.", taskID)
+			h.flashType = "success"
+			h.mu.Unlock()
+		}
+	}
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?tab=%s&theme=%s", url.QueryEscape(tab), url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+// HandleSandboxMerge merges changes from the sandbox back to main workspace.
+func (h *UIHandler) HandleSandboxMerge(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	taskID := strings.TrimSpace(r.FormValue("task_id"))
+	theme := r.FormValue("theme")
+	tab := r.FormValue("tab")
+	if theme == "" {
+		theme = "light"
+	}
+	if tab == "" {
+		tab = "tech"
+	}
+
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/branches/%s/merge", h.cfg.EngineURL, url.PathEscape(taskID)), nil)
+	if err == nil {
+		resp, err := h.client.Do(req)
+		if err == nil && resp != nil {
+			_ = resp.Body.Close()
+			h.mu.Lock()
+			h.flashMessage = fmt.Sprintf("✓ Merged sandbox '%s' safely into workspace.", taskID)
+			h.flashType = "success"
+			h.mu.Unlock()
+		}
+	}
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?tab=%s&theme=%s", url.QueryEscape(tab), url.QueryEscape(theme)), http.StatusSeeOther)
+}
+
+// HandleSandboxAbort aborts and purges the sandbox branch.
+func (h *UIHandler) HandleSandboxAbort(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	taskID := strings.TrimSpace(r.FormValue("task_id"))
+	theme := r.FormValue("theme")
+	tab := r.FormValue("tab")
+	if theme == "" {
+		theme = "light"
+	}
+	if tab == "" {
+		tab = "tech"
+	}
+
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/branches/%s/abort", h.cfg.EngineURL, url.PathEscape(taskID)), nil)
+	if err == nil {
+		resp, err := h.client.Do(req)
+		if err == nil && resp != nil {
+			_ = resp.Body.Close()
+			h.mu.Lock()
+			h.flashMessage = fmt.Sprintf("✓ Aborted sandbox '%s'. Original workspace untouched.", taskID)
+			h.flashType = "info"
+			h.mu.Unlock()
+		}
+	}
+	http.Redirect(w, r, fmt.Sprintf("/dashboard?tab=%s&theme=%s", url.QueryEscape(tab), url.QueryEscape(theme)), http.StatusSeeOther)
 }
 
 // ServeStatic exposes the embedded static asset file server.

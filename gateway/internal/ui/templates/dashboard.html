@@ -61,6 +61,99 @@
   </div>
 </header>
 
+<!-- Phase 11: Industrial Mission Control Telemetry Ribbon -->
+<section class="mission-control-ribbon" aria-label="System Vitals">
+  <div style="display: flex; gap: 16px; align-items: center;">
+    <div class="vital-item" title="Tri-Stack Go Gateway (:8080)">
+      <span class="vital-dot online"></span>
+      <span>Go Gateway</span>
+    </div>
+    <div class="vital-item" title="C++20 SIMD AVX2 Vector Vault">
+      <span class="vital-dot online"></span>
+      <span>C++20 AVX2 (384-dim)</span>
+    </div>
+    <div class="vital-item" title="Python Core Engine (:8000)">
+      <span class="vital-dot online"></span>
+      <span>Python Engine</span>
+    </div>
+    <div class="vital-item" title="Active AI Driver">
+      <span class="vital-dot accent"></span>
+      <span>Brain: <strong>{{ if .DriverStatus }}{{ .DriverStatus.ActiveEngine | upper }}{{ else }}FLUX-NATIVE{{ end }}</strong></span>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 14px; align-items: center;">
+    <div class="vital-item" title="Embedded SQLite Storage Vault">
+      <span>Vault: <strong>{{ if .VaultStatus }}{{ .VaultStatus.DatabaseSizeKB }} KB{{ else }}WAL{{ end }}</strong></span>
+      <span class="metric-pill">0% Idle RAM</span>
+    </div>
+    <div class="vital-item" title="Isolated Git Task Sandboxes (Phase 9 & 11)">
+      <span>Sandboxes: <strong>{{ len .Sandboxes }}</strong></span>
+    </div>
+    <div class="vital-item" title="Learned Sovereign Rules">
+      <span>Rules: <strong>{{ len .LearnedRules }}</strong></span>
+    </div>
+    <a href="/dashboard/stream" target="_blank" class="vital-item" style="text-decoration: none; color: var(--accent); font-weight: 600;" title="Real-Time Server-Sent Events Stream">
+      📡 SSE Telemetry
+    </a>
+  </div>
+</section>
+
+<!-- Phase 11: Domain Hub Navigation Bar (Zero-JS Workspace Switcher) -->
+<nav class="domain-hub-bar" aria-label="Domain Hub Workspaces">
+  <div class="domain-hub-tabs">
+    <a href="/dashboard?tab=overview&theme={{ .Theme }}{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
+       class="hub-tab {{ if or (eq .ActiveTab "overview") (not .ActiveTab) }}active{{ end }}">
+      <span>🚀</span>
+      <span>Overview</span>
+    </a>
+    <a href="/dashboard?tab=tech&theme={{ .Theme }}{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
+       class="hub-tab {{ if eq .ActiveTab "tech" }}active{{ end }}">
+      <span>💻</span>
+      <span>Tech & Systems</span>
+    </a>
+    <a href="/dashboard?tab=science&theme={{ .Theme }}{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
+       class="hub-tab {{ if eq .ActiveTab "science" }}active{{ end }}">
+      <span>🔬</span>
+      <span>Science & Math</span>
+    </a>
+    <a href="/dashboard?tab=finance&theme={{ .Theme }}{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
+       class="hub-tab {{ if eq .ActiveTab "finance" }}active{{ end }}">
+      <span>📊</span>
+      <span>Finance & Valuation</span>
+    </a>
+    <a href="/dashboard?tab=research&theme={{ .Theme }}{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
+       class="hub-tab {{ if eq .ActiveTab "research" }}active{{ end }}">
+      <span>🌐</span>
+      <span>Web Research</span>
+    </a>
+    <a href="/dashboard?tab=memory&theme={{ .Theme }}{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
+       class="hub-tab {{ if eq .ActiveTab "memory" }}active{{ end }}">
+      <span>🧠</span>
+      <span>Memory & Rules</span>
+    </a>
+    <a href="/dashboard?tab=swarm&theme={{ .Theme }}{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
+       class="hub-tab {{ if eq .ActiveTab "swarm" }}active{{ end }}">
+      <span>⚖️</span>
+      <span>Swarm Consensus</span>
+    </a>
+    <a href="/dashboard?tab=vault&theme={{ .Theme }}{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
+       class="hub-tab {{ if eq .ActiveTab "vault" }}active{{ end }}">
+      <span>📦</span>
+      <span>Storage Vault</span>
+    </a>
+    <a href="/dashboard?tab=all&theme={{ .Theme }}{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
+       class="hub-tab {{ if eq .ActiveTab "all" }}active{{ end }}">
+      <span>🗂</span>
+      <span>Unified (All)</span>
+    </a>
+  </div>
+
+  <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">
+    Active Hub: <strong style="text-transform: uppercase; color: var(--accent);">{{ if .ActiveTab }}{{ upper .ActiveTab }}{{ else }}OVERVIEW{{ end }}</strong>
+  </div>
+</nav>
+
 <!-- Optional Flash Alert Notification -->
 {{ if .FlashMessage }}
 <div class="flash-alert {{ .FlashType }}">
@@ -114,6 +207,56 @@
           {{ end }}
         {{ else }}
           <div style="font-size: 12px; color: var(--text-muted); padding: 8px;">No snapshots captured yet.</div>
+        {{ end }}
+      </div>
+
+      <!-- Phase 9 & 11: Isolated Git Branching Sandbox Manager -->
+      <div class="pane-header" style="margin-top: 16px; border-top: 1px solid var(--border);">
+        <span>Git Task Sandboxes</span>
+        <span class="badge badge-info" style="font-size: 10px;">{{ len .Sandboxes }} ISOLATED</span>
+      </div>
+      <div style="padding: 10px 8px;">
+        <form method="POST" action="/dashboard/sandbox/create" style="margin: 0 0 8px 0;">
+          <input type="hidden" name="theme" value="{{ $.Theme }}">
+          <input type="hidden" name="tab" value="{{ $.ActiveTab }}">
+          <div style="display: flex; gap: 4px;">
+            <input type="text" name="task_id" class="text-input" style="font-size: 11px; padding: 4px 6px; flex: 1;" placeholder="Sandbox task-id (e.g. task-feat1)">
+            <button type="submit" class="btn-primary" style="font-size: 10px; padding: 4px 8px;">+ Fork</button>
+          </div>
+        </form>
+
+        {{ if .Sandboxes }}
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          {{ range .Sandboxes }}
+          <div class="snapshot-item" style="padding: 6px 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <span style="font-size: 11px; font-weight: 700; font-family: var(--font-mono);">🌿 {{ .BranchName }}</span>
+              <span class="badge {{ if eq .Status "active" }}badge-success{{ else if eq .Status "merged" }}badge-info{{ else }}badge-warning{{ end }}" style="font-size: 9px;">{{ .Status }}</span>
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">
+              Task: {{ .TaskID }} | Base: {{ .BaseBranch }} | Files: {{ len .FilesModified }}
+            </div>
+            {{ if eq .Status "active" }}
+            <div style="display: flex; gap: 4px;">
+              <form method="POST" action="/dashboard/sandbox/merge" style="margin: 0; flex: 1;">
+                <input type="hidden" name="task_id" value="{{ .TaskID }}">
+                <input type="hidden" name="theme" value="{{ $.Theme }}">
+                <input type="hidden" name="tab" value="{{ $.ActiveTab }}">
+                <button type="submit" class="btn-restore" style="font-size: 10px; padding: 2px 4px; width: 100%; color: var(--success);" title="Merge sandbox safely back to main">✓ Merge</button>
+              </form>
+              <form method="POST" action="/dashboard/sandbox/abort" style="margin: 0; flex: 1;">
+                <input type="hidden" name="task_id" value="{{ .TaskID }}">
+                <input type="hidden" name="theme" value="{{ $.Theme }}">
+                <input type="hidden" name="tab" value="{{ $.ActiveTab }}">
+                <button type="submit" class="btn-restore" style="font-size: 10px; padding: 2px 4px; width: 100%; color: var(--danger);" title="Abort sandbox and discard changes">✕ Abort</button>
+              </form>
+            </div>
+            {{ end }}
+          </div>
+          {{ end }}
+        </div>
+        {{ else }}
+        <div style="font-size: 11px; color: var(--text-muted);">No active task sandboxes. Working in sovereign main workspace.</div>
         {{ end }}
       </div>
 
@@ -640,6 +783,118 @@
       </div>
     </div>
 
+    <!-- Phase 11: Domain Hub Presets & Quick-Dispatch Launchpad -->
+    <div class="domain-preset-banner">
+      <div class="preset-title">
+        <span>⚡</span>
+        <span>
+          {{ if eq .ActiveTab "tech" }}Systems & Engineering Launchpad
+          {{ else if eq .ActiveTab "science" }}Science & Quantitative Launchpad
+          {{ else if eq .ActiveTab "finance" }}Finance & Economics Launchpad
+          {{ else if eq .ActiveTab "research" }}Live Web Grounding & Intelligence Launchpad
+          {{ else if eq .ActiveTab "memory" }}C++ SIMD Vector & Rules Launchpad
+          {{ else if eq .ActiveTab "swarm" }}Multi-Agent Deliberation Launchpad
+          {{ else if eq .ActiveTab "vault" }}Storage Vault Optimization Launchpad
+          {{ else }}Mission Control: Universal Sovereign Presets
+          {{ end }}
+        </span>
+      </div>
+
+      <div class="preset-grid">
+        {{ if or (eq .ActiveTab "tech") (eq .ActiveTab "overview") (eq .ActiveTab "all") }}
+        <form method="POST" action="/dashboard/dispatch" style="margin: 0;">
+          <input type="hidden" name="prompt" value="Build a high-throughput concurrent worker pool in Go with goroutines and channels">
+          <input type="hidden" name="mode" value="autopilot">
+          <input type="hidden" name="persona" value="coder">
+          <input type="hidden" name="tab" value="{{ $.ActiveTab }}">
+          <input type="hidden" name="theme" value="{{ $.Theme }}">
+          <button type="submit" class="preset-btn" title="Dispatch Go Worker Pool Directive">
+            <strong>💻 Go Worker Pool</strong>
+            <div style="font-size: 10px; color: var(--text-muted);">Concurrent goroutines & channels</div>
+          </button>
+        </form>
+
+        <form method="POST" action="/dashboard/dispatch" style="margin: 0;">
+          <input type="hidden" name="prompt" value="Implement a dynamic programming Levenshtein diff matrix in Python with unit tests">
+          <input type="hidden" name="mode" value="autopilot">
+          <input type="hidden" name="persona" value="coder">
+          <input type="hidden" name="tab" value="{{ $.ActiveTab }}">
+          <input type="hidden" name="theme" value="{{ $.Theme }}">
+          <button type="submit" class="preset-btn" title="Dispatch Levenshtein Matrix Directive">
+            <strong>🔤 Levenshtein Matrix</strong>
+            <div style="font-size: 10px; color: var(--text-muted);">O(N*M) DP cost calculation</div>
+          </button>
+        </form>
+        {{ end }}
+
+        {{ if or (eq .ActiveTab "science") (eq .ActiveTab "overview") (eq .ActiveTab "all") }}
+        <form method="POST" action="/dashboard/dispatch" style="margin: 0;">
+          <input type="hidden" name="prompt" value="Simulate exponential decay Hamiltonian with bounded numerical verification">
+          <input type="hidden" name="mode" value="autopilot">
+          <input type="hidden" name="persona" value="architect">
+          <input type="hidden" name="tab" value="{{ $.ActiveTab }}">
+          <input type="hidden" name="theme" value="{{ $.Theme }}">
+          <button type="submit" class="preset-btn" title="Dispatch Scientific Hamiltonian Simulation">
+            <strong>🔬 Physics Decay</strong>
+            <div style="font-size: 10px; color: var(--text-muted);">Hamiltonian exponential bounds</div>
+          </button>
+        </form>
+
+        <form method="POST" action="/dashboard/dispatch" style="margin: 0;">
+          <input type="hidden" name="prompt" value="Solve Runge-Kutta 4th order differential equation with numerical stability verification">
+          <input type="hidden" name="mode" value="autopilot">
+          <input type="hidden" name="persona" value="architect">
+          <input type="hidden" name="tab" value="{{ $.ActiveTab }}">
+          <input type="hidden" name="theme" value="{{ $.Theme }}">
+          <button type="submit" class="preset-btn" title="Dispatch Runge-Kutta ODE Solver">
+            <strong>📐 Runge-Kutta ODE</strong>
+            <div style="font-size: 10px; color: var(--text-muted);">RK4 numerical integration</div>
+          </button>
+        </form>
+        {{ end }}
+
+        {{ if or (eq .ActiveTab "finance") (eq .ActiveTab "overview") (eq .ActiveTab "all") }}
+        <form method="POST" action="/dashboard/dispatch" style="margin: 0;">
+          <input type="hidden" name="prompt" value="Audit operating cash flow ledger and compute EBITDA margin from ledger.csv">
+          <input type="hidden" name="mode" value="autopilot">
+          <input type="hidden" name="persona" value="auditor">
+          <input type="hidden" name="tab" value="{{ $.ActiveTab }}">
+          <input type="hidden" name="theme" value="{{ $.Theme }}">
+          <button type="submit" class="preset-btn" title="Dispatch Financial Cash Flow Audit">
+            <strong>📊 Cash Flow Audit</strong>
+            <div style="font-size: 10px; color: var(--text-muted);">Tabular ledger & EBITDA margin</div>
+          </button>
+        </form>
+
+        <form method="POST" action="/dashboard/dispatch" style="margin: 0;">
+          <input type="hidden" name="prompt" value="Model Black-Scholes European call option pricing with Delta and Gamma Greeks">
+          <input type="hidden" name="mode" value="autopilot">
+          <input type="hidden" name="persona" value="coder">
+          <input type="hidden" name="tab" value="{{ $.ActiveTab }}">
+          <input type="hidden" name="theme" value="{{ $.Theme }}">
+          <button type="submit" class="preset-btn" title="Dispatch Black-Scholes Greeks Valuation">
+            <strong>📈 Black-Scholes Greeks</strong>
+            <div style="font-size: 10px; color: var(--text-muted);">Option valuation & risk sensitivity</div>
+          </button>
+        </form>
+        {{ end }}
+
+        {{ if or (eq .ActiveTab "research") (eq .ActiveTab "overview") (eq .ActiveTab "all") }}
+        <form method="POST" action="/dashboard/dispatch" style="margin: 0;">
+          <input type="hidden" name="prompt" value="Conduct autonomous web research on distributed Raft consensus and Byzantine fault tolerance">
+          <input type="hidden" name="mode" value="interactive">
+          <input type="hidden" name="persona" value="architect">
+          <input type="hidden" name="tab" value="{{ $.ActiveTab }}">
+          <input type="hidden" name="theme" value="{{ $.Theme }}">
+          <button type="submit" class="preset-btn" title="Dispatch Distributed Consensus Research">
+            <strong>🌐 Distributed Consensus</strong>
+            <div style="font-size: 10px; color: var(--text-muted);">Live web grounding on Raft & BFT</div>
+          </button>
+        </form>
+        {{ end }}
+      </div>
+    </div>
+
     <!-- Scrollable Conversation Ledger -->
     <div class="conversation-scroll">
       <div class="msg-card system">
@@ -686,6 +941,7 @@
             <option value="refactorer">Refactorer (Zero-Debt)</option>
           </select>
           <input type="hidden" name="theme" value="{{ .Theme }}">
+          <input type="hidden" name="tab" value="{{ .ActiveTab }}">
           {{ if .ActiveFile }}<input type="hidden" name="file" value="{{ .ActiveFile }}">{{ end }}
           <button type="submit" class="btn-primary">
             Dispatch Directive ➔
