@@ -94,7 +94,8 @@ function Invoke-Test() {
         python engine/tests/test_git_sandbox.py
         python engine/tests/test_flux_driver.py
         python engine/tests/test_e2e_triumvirate.py
-        Write-Success "Python verification, sandbox security, rollback engine, and native bridge passed!"
+        python scripts/verify_production.py
+        Write-Success "Python verification, sandbox security, rollback engine, native bridge, and Phase 12 master suite passed!"
     }
 }
 
@@ -149,12 +150,13 @@ function Invoke-Push([string]$commitMsg) {
 }
 
 function Invoke-Build() {
-    Write-Step "Building Go Gateway..."
+    Write-Step "Building Go Gateway Static Binary..."
     if (Get-Command go -ErrorAction SilentlyContinue) {
         Push-Location gateway
         try {
-            go build -v -o ../bin/gateway.exe ./cmd/server
-            Write-Success "Go gateway compiled to bin/gateway.exe"
+            $binPath = "../bin/fluxkernel-gateway.exe"
+            go build -ldflags="-s -w" -v -o $binPath ./cmd/server
+            Write-Success "Go gateway compiled to $binPath"
         } finally {
             Pop-Location
         }
@@ -189,7 +191,7 @@ switch ($Command) {
     "test"    { Invoke-Test }
     "push"    { Invoke-Push -commitMsg $Message }
     "build"   { Invoke-Build }
-    "start"   { & ".\run.bat" }
+    "start"   { & ".\scripts\launch.ps1" }
     "up"      { Write-Step "Starting Docker Compose..."; docker compose up -d }
     "down"    { Write-Step "Stopping Docker Compose..."; docker compose down }
     "clean"   { Invoke-Clean }

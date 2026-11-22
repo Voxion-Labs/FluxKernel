@@ -1,6 +1,15 @@
 @echo off
 setlocal enabledelayedexpansion
 
+:: 1-Click Launch Router to Phase 12 Enterprise Launcher
+where powershell >nul 2>&1
+if %errorlevel% equ 0 (
+    if exist "%~dp0scripts\launch.ps1" (
+        powershell -ExecutionPolicy Bypass -File "%~dp0scripts\launch.ps1" %*
+        exit /b %errorlevel%
+    )
+)
+
 title FluxKernel Sovereign Autonomous Operating System
 
 echo ==============================================================================

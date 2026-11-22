@@ -43,8 +43,17 @@ do_test() {
         python3 engine/tests/test_agentic_loop.py
         python3 engine/tests/test_universal_rag.py
         python3 engine/tests/test_web_intelligence.py
+        python3 engine/tests/test_chat_ingestor.py
+        python3 engine/tests/test_feedback_learner.py
+        python3 engine/tests/test_storage_vault.py
+        python3 engine/tests/test_swarm_engine.py
+        python3 engine/tests/test_telemetry.py
+        python3 engine/tests/test_workspace_search.py
+        python3 engine/tests/test_git_sandbox.py
+        python3 engine/tests/test_flux_driver.py
         python3 engine/tests/test_e2e_triumvirate.py
-        success "Python verification, sandbox security, rollback engine, and native bridge passed!"
+        python3 scripts/verify_production.py
+        success "Python verification, sandbox security, rollback engine, native bridge, and Phase 12 master suite passed!"
     fi
 }
 
@@ -92,6 +101,16 @@ do_push() {
     success "Successfully pushed to origin/main!"
 }
 
+do_build() {
+    step "Building Go Gateway Static Binary..."
+    if command -v go >/dev/null 2>&1; then
+        mkdir -p bin
+        (cd gateway && go build -ldflags="-s -w" -v -o ../bin/fluxkernel-gateway ./cmd/server)
+        chmod +x bin/fluxkernel-gateway
+        success "Go gateway compiled to bin/fluxkernel-gateway"
+    fi
+}
+
 do_clean() {
     step "Cleaning temporary files..."
     find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -105,7 +124,8 @@ case "$CMD" in
     lint|format) do_lint ;;
     test)        do_test ;;
     push)        do_push ;;
-    start)       exec ./run.sh ;;
+    build)       do_build ;;
+    start)       exec ./scripts/launch.sh ;;
     clean)       do_clean ;;
     up)          docker compose up -d ;;
     down)        docker compose down ;;
@@ -115,6 +135,6 @@ case "$CMD" in
         ;;
     help|*)
         echo "FluxKernel Ops CLI"
-        echo "Commands: sync | rebase | push <msg> | lint | test | up | down | clean | status"
+        echo "Commands: sync | rebase | push <msg> | lint | test | build | start | up | down | clean | status"
         ;;
 esac

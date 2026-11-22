@@ -194,6 +194,8 @@ jobs:
           python engine/tests/test_git_sandbox.py
           python engine/tests/test_flux_driver.py
           python engine/tests/test_e2e_triumvirate.py
+          echo "Executing Phase 12 Master End-to-End Production Verification & Parity Suite..."
+          python scripts/verify_production.py
 
   # ────────────────────────────────────────────────────────────────────────────
   # 4. CONTAINER BUILD VERIFICATION (MULTI-STAGE DOCKERFILE)

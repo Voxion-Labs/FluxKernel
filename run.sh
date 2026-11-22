@@ -5,6 +5,11 @@
 # ==============================================================================
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/scripts/launch.sh" ]; then
+    exec "${SCRIPT_DIR}/scripts/launch.sh" "$@"
+fi
+
 echo "=============================================================================="
 echo " Voxion Labs - FluxKernel Autonomous Operating System"
 echo " Tri-Stack Sovereign Architecture (Go + C++20 + Python)"

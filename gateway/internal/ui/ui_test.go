@@ -794,6 +794,47 @@ func TestUIHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("Phase 12: End-to-End Production Readiness & Embedded Asset Integrity", func(t *testing.T) {
+		// 1. Verify embedded filesystem integrity (templates and static CSS)
+		tmplEntries, err := embeddedFS.ReadDir("templates")
+		if err != nil {
+			t.Fatalf("failed to read embedded templates directory: %v", err)
+		}
+		if len(tmplEntries) == 0 {
+			t.Errorf("expected embedded templates to be present, found 0")
+		}
+
+		staticEntries, err := embeddedFS.ReadDir("static/css")
+		if err != nil {
+			t.Fatalf("failed to read embedded static/css directory: %v", err)
+		}
+		if len(staticEntries) == 0 {
+			t.Errorf("expected embedded CSS assets to be present, found 0")
+		}
+
+		// 2. Full render test of all 9 domain hubs
+		hubs := []string{"overview", "tech", "science", "finance", "research", "rules", "consensus", "vault", "all"}
+		for _, hub := range hubs {
+			req := httptest.NewRequest(http.MethodGet, "/dashboard?tab="+hub+"&theme=light", nil)
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Errorf("hub '%s' failed to render, got status %d", hub, rec.Code)
+			}
+			body := rec.Body.String()
+			if strings.Contains(body, "<script") {
+				t.Errorf("VIOLATION: Zero-JS policy broken in hub '%s'", hub)
+			}
+			if !strings.Contains(body, "mission-control-ribbon") {
+				t.Errorf("hub '%s' missing mission-control-ribbon", hub)
+			}
+			if !strings.Contains(body, "domain-hub-bar") {
+				t.Errorf("hub '%s' missing domain-hub-bar", hub)
+			}
+		}
+	})
+
 	t.Run("Static Asset Delivery (CSS Only, Zero JS)", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/static/css/dashboard.css", nil)
 		rec := httptest.NewRecorder()
