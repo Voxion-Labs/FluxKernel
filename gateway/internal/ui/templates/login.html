@@ -1,0 +1,416 @@
+{{ define "content" }}
+<!-- Sovereign Landing & Login Console (Zero-JS Architecture) -->
+<div class="landing-wrapper">
+
+  <!-- Top Navigation Bar -->
+  <header class="landing-navbar">
+    <div class="landing-nav-left">
+      <a href="/login?theme={{ .Theme }}" class="landing-brand-link">
+        <img src="/static/img/logo.svg" alt="FluxKernel" class="landing-brand-icon">
+        <span class="landing-brand-text">FluxKernel<span class="landing-brand-dot">.</span></span>
+      </a>
+    </div>
+
+    <nav class="landing-nav-center" aria-label="Main Navigation">
+      <a href="#capabilities" class="landing-nav-link">Capabilities</a>
+      <a href="#swarm" class="landing-nav-link">Agentic Swarm</a>
+      <a href="#model" class="landing-nav-link">Foundational Model</a>
+      <a href="#sandbox" class="landing-nav-link">Git Sandboxing</a>
+      <a href="#vault" class="landing-nav-link">Storage Vault</a>
+    </nav>
+
+    <div class="landing-nav-right">
+      <!-- Theme Switcher (System, Light, Dark) -->
+      <div class="landing-theme-toggle" aria-label="Theme Selector">
+        <a href="/login?theme=system" class="landing-theme-btn {{ if or (eq .Theme "system") (not .Theme) }}active{{ end }}" title="System Default">💻 System</a>
+        <a href="/login?theme=light" class="landing-theme-btn {{ if eq .Theme "light" }}active{{ end }}" title="Light Mode">☀️ Light</a>
+        <a href="/login?theme=dark" class="landing-theme-btn {{ if eq .Theme "dark" }}active{{ end }}" title="Dark Mode">🌙 Dark</a>
+      </div>
+
+      <a href="/dashboard?theme={{ .Theme }}" class="landing-btn-launch">Launch Console</a>
+    </div>
+  </header>
+
+  <!-- Hero Section with Split Layout -->
+  <main class="landing-hero">
+    <!-- Left Column: Copy & Value Proposition -->
+    <section class="hero-content">
+      <div class="hero-badge">
+        <span class="hero-badge-icon">⚡</span>
+        <span>Sovereign Agentic AI & Foundational LLM</span>
+      </div>
+
+      <h1 class="hero-headline">
+        Autonomous intelligence and foundational reasoning <span class="hero-accent">on every machine.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        A sovereign combo engine uniting native foundational LLM reasoning with an autonomous, self-healing agentic loop. Plan, synthesize code, ground live research from the web, coordinate multi-specialist swarms, and verify in isolated git sandboxes—100% locally with zero cloud telemetry.
+      </p>
+
+      <div class="hero-pills">
+        <span class="hero-pill"><span class="pill-dot"></span> 🛡 Local Git Sandboxing</span>
+        <span class="hero-pill"><span class="pill-dot"></span> 🧠 4-Specialist Swarm</span>
+        <span class="hero-pill"><span class="pill-dot"></span> ⚡ SIMD Vector Memory</span>
+        <span class="hero-pill"><span class="pill-dot"></span> 🔒 Zero Cloud Tracking</span>
+      </div>
+
+      <div class="hero-actions">
+        <a href="/dashboard?theme={{ .Theme }}" class="landing-btn-primary">
+          <span>Enter Mission Control</span>
+          <span class="btn-arrow">➔</span>
+        </a>
+        <a href="#capabilities" class="landing-btn-secondary">
+          <span>Explore Capabilities</span>
+          <span class="btn-arrow">↓</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Right Column: Elevated Operator Session Card -->
+    <section class="hero-card-col">
+      <div class="login-card">
+        <!-- Card Tab Switcher -->
+        <div class="card-tabs" role="tablist">
+          <a href="/login?theme={{ .Theme }}" class="card-tab active" role="tab">Operator Session</a>
+          <a href="/dashboard?guest=1&theme={{ .Theme }}" class="card-tab" role="tab">Instant Guest</a>
+        </div>
+
+        <!-- Workspace Profile Header -->
+        <div class="workspace-profile-header">
+          <div class="operator-avatar">FK</div>
+          <div class="operator-info">
+            <div class="operator-title">Workspace Operator Profile</div>
+            <div class="operator-subtitle">Personalize your local intelligence session.</div>
+          </div>
+        </div>
+
+        <!-- Operator Authentication & Session Form -->
+        <form method="POST" action="/login" class="login-form">
+          <input type="hidden" name="theme" value="{{ .Theme }}">
+
+          <div class="form-group">
+            <label for="operator" class="form-label">Operator Handle</label>
+            <input type="text" id="operator" name="operator" class="login-input" value="lead_engineer" placeholder="lead_engineer" required autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label for="workspace" class="form-label">Workspace Directory</label>
+            <input type="text" id="workspace" name="workspace" class="login-input" value="./workspace" placeholder="./workspace" required>
+          </div>
+
+          <div class="form-group">
+            <label for="passcode" class="form-label">Master Key / Session Passcode</label>
+            <input type="password" id="passcode" name="passcode" class="login-input" value="flux-master-2026" placeholder="Enter session passcode" autocomplete="current-password">
+          </div>
+
+          <div class="form-group">
+            <label for="engine" class="form-label">Foundational AI Engine</label>
+            <div class="select-wrapper">
+              <select id="engine" name="engine" class="login-input select-input">
+                <option value="flux-native" {{ if or (eq .ActiveEngine "flux-native") (not .ActiveEngine) }}selected{{ end }}>Flux-1.0 Native (All-Rounder Sovereign Brain)</option>
+                <option value="ollama" {{ if eq .ActiveEngine "ollama" }}selected{{ end }}>Ollama Local (Llama-3 / Mistral)</option>
+                <option value="claude" {{ if eq .ActiveEngine "claude" }}selected{{ end }}>Anthropic Claude-3.5 (API Gateway)</option>
+                <option value="gemini" {{ if eq .ActiveEngine "gemini" }}selected{{ end }}>Gemini 1.5 Pro (API Gateway)</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="login-submit-btn">
+            <span>Enter Sovereign Console</span>
+            <span class="btn-arrow">➔</span>
+          </button>
+        </form>
+
+        <!-- Secondary Links -->
+        <div class="card-footer-links">
+          <a href="/dashboard?tab=all&theme={{ .Theme }}" class="card-link">⚙ Mission Control</a>
+          <a href="/dashboard?guest=1&theme={{ .Theme }}" class="card-link-accent">⚡ Instant Guest Operator</a>
+        </div>
+
+        <!-- Security Badge -->
+        <div class="card-security-note">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span>Local-first session. 100% memory isolation. Zero cloud tracking.</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Below the Fold: Scrollable Feature Breakdowns -->
+
+  <!-- Section 1: The Dual-Engine Synergy -->
+  <section id="capabilities" class="landing-section">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">Synergy Architecture</span>
+        <h2 class="section-title">Foundational LLM + Autonomous Agentic Loop</h2>
+        <p class="section-subtitle">
+          FluxKernel integrates an open-ended foundational reasoning brain with an industrial self-healing agentic execution cycle.
+        </p>
+      </div>
+
+      <div class="feature-grid-3">
+        <div class="feature-card">
+          <div class="feature-card-icon-wrap">🧠</div>
+          <h3 class="feature-card-title">Flux-1.0 Native Foundational Brain</h3>
+          <p class="feature-card-text">
+            All-rounder foundational intelligence operating without brittle keyword filters. Synthesizes multi-file code architectures, parses technical specifications across disciplines, and grounds decisions with real-time web intelligence.
+          </p>
+          <div class="feature-card-meta">Dynamic Synthesis · Live Web Grounding</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card-icon-wrap">🔄</div>
+          <h3 class="feature-card-title">Autonomous Self-Healing Loop</h3>
+          <p class="feature-card-text">
+            Iterative Plan → Write → Test → Fix execution cycle. Automatically captures compiler errors, analyzes runtime diagnostics, generates targeted patches, and verifies fixes with in-memory diff inspection.
+          </p>
+          <div class="feature-card-meta">Self-Correcting · In-Memory Diff Gate</div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card-icon-wrap">⚡</div>
+          <h3 class="feature-card-title">Bare-Metal SIMD Vector Memory</h3>
+          <p class="feature-card-text">
+            C++20 AVX2 hardware-accelerated 384-dimensional vector dot products, cosine metrics, and lexical distance calculations for sub-millisecond semantic retrieval across millions of tokens.
+          </p>
+          <div class="feature-card-meta">AVX2 Intrinsics · Zero-Overhead FFI</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 2: Multi-Domain Swarm Consensus -->
+  <section id="swarm" class="landing-section landing-section-alt">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">Deliberation DAG</span>
+        <h2 class="section-title">4-Specialist Autonomous Agent Swarm</h2>
+        <p class="section-subtitle">
+          Complex directives undergo rigorous cross-examination by four sovereign domain specialists before execution.
+        </p>
+      </div>
+
+      <div class="swarm-grid-4">
+        <div class="swarm-card">
+          <div class="swarm-badge tech">Tech Lead</div>
+          <h4 class="swarm-card-title">Systems & Architecture</h4>
+          <p class="swarm-card-text">
+            Analyzes concurrency models, memory bounds, algorithmic complexity, race conditions, and code correctness.
+          </p>
+        </div>
+
+        <div class="swarm-card">
+          <div class="swarm-badge science">Science Specialist</div>
+          <h4 class="swarm-card-title">Scientific Computing</h4>
+          <p class="swarm-card-text">
+            Formulates differential equations, Hamiltonian dynamics, statistical invariants, and analytical proofs.
+          </p>
+        </div>
+
+        <div class="swarm-card">
+          <div class="swarm-badge finance">Financial Auditor</div>
+          <h4 class="swarm-card-title">Quantitative Finance</h4>
+          <p class="swarm-card-text">
+            Audits discounted cash flows (DCF), EBITDA margin metrics, liquidity ratios, and options Greeks.
+          </p>
+        </div>
+
+        <div class="swarm-card">
+          <div class="swarm-badge auditor">Executive Auditor</div>
+          <h4 class="swarm-card-title">Consensus Synthesizer</h4>
+          <p class="swarm-card-text">
+            Evaluates trade-offs, resolves dissenting ballots, and produces a unified, risk-mitigated execution plan.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Foundational LLM Engine -->
+  <section id="model" class="landing-section">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">Foundational Model</span>
+        <h2 class="section-title">Open-Domain Reasoning Without Boundaries</h2>
+        <p class="section-subtitle">
+          Engineered as a versatile generalist capable of synthesizing solutions across any scientific or technical domain.
+        </p>
+      </div>
+
+      <div class="model-showcase">
+        <div class="model-showcase-left">
+          <h3>Sovereign Cognitive Synthesis</h3>
+          <p>
+            The Flux-1.0 engine moves beyond rigid keyword scripts. It parses natural-language problem statements into structured multi-step execution plans, identifies missing dependencies, and generates correct multi-language code.
+          </p>
+          <ul class="model-check-list">
+            <li><strong>All-Rounder Generalist:</strong> Capable across systems programming, quantitative finance, bio-physics, and data infrastructure.</li>
+            <li><strong>Live Research Grounding:</strong> Autonomous web search queries retrieve authoritative documentation when encountering novel libraries.</li>
+            <li><strong>Multi-Model Routing:</strong> Switch seamlessly between native offline inference and external API providers.</li>
+          </ul>
+        </div>
+        <div class="model-showcase-right">
+          <div class="terminal-mock">
+            <div class="terminal-mock-header">
+              <span class="terminal-dot red"></span>
+              <span class="terminal-dot yellow"></span>
+              <span class="terminal-dot green"></span>
+              <span class="terminal-mock-title">fluxkernel-driver-stream</span>
+            </div>
+            <pre class="terminal-mock-body"><code><span class="term-dim"># Directive Ingestion</span>
+<span class="term-cyan">PARSE:</span> "Implement lock-free ring buffer in C++20"
+<span class="term-dim"># Swarm Deliberation</span>
+<span class="term-green">TECH_LEAD:</span> Memory order acquire-release verified
+<span class="term-green">AUDITOR:</span> Consensus UNANIMOUS (Confidence 0.96)
+<span class="term-dim"># Isolated Sandbox Execution</span>
+<span class="term-yellow">SANDBOX:</span> flux/task-ringbuffer-c14f
+<span class="term-dim"># Verification & Diff Gate</span>
+<span class="term-green">TEST:</span> 12/12 unit tests passed (0 races)
+<span class="term-cyan">GATE:</span> Unified LCS diff approved. Ready to merge.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 4: Git Task Sandboxing -->
+  <section id="sandbox" class="landing-section landing-section-alt">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">Safe Execution</span>
+        <h2 class="section-title">Zero-Risk Isolated Git Sandboxing</h2>
+        <p class="section-subtitle">
+          Your active working tree is never touched directly. Every autonomous task runs inside an isolated git branch.
+        </p>
+      </div>
+
+      <div class="workflow-steps-3">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <h4 class="step-title">Branch Isolation</h4>
+          <p class="step-desc">
+            FluxKernel creates a clean <code>flux/task-*</code> branch snapshotting the current repository state before touching a single file.
+          </p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <h4 class="step-title">Mutate & Test</h4>
+          <p class="step-desc">
+            Code synthesis, unit test runs, and compiler verification execute entirely within the sandbox boundary.
+          </p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <h4 class="step-title">Diff Gate & Merge</h4>
+          <p class="step-desc">
+            Changes are displayed in an industrial unified diff gate for human operator review before an atomic, clean merge.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 5: Zero-Footprint Storage Vault -->
+  <section id="vault" class="landing-section">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">Transactional Storage</span>
+        <h2 class="section-title">Zero-Footprint SQLite Vault (0% Idle RAM)</h2>
+        <p class="section-subtitle">
+          Transactional Write-Ahead Logging (WAL) with automatic connection cleanup and VACUUM compaction.
+        </p>
+      </div>
+
+      <div class="feature-grid-3">
+        <div class="feature-card">
+          <div class="feature-card-icon-wrap">🔒</div>
+          <h3 class="feature-card-title">0% Idle RAM Footprint</h3>
+          <p class="feature-card-text">
+            Storage connections close immediately upon query completion. Background daemons maintain zero persistent memory handles.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card-icon-wrap">💾</div>
+          <h3 class="feature-card-title">WAL Checkpointing & Vacuum</h3>
+          <p class="feature-card-text">
+            Embedded WAL checkpoints flush transaction logs safely, while automatic VACUUM defragments storage on disk.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card-icon-wrap">📖</div>
+          <h3 class="feature-card-title">Episodic Rule Distillation</h3>
+          <p class="feature-card-text">
+            Feedback and negative constraints from past iterations are distilled into permanent rules stored in the local vault.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Global Footer -->
+  <footer id="footer" class="landing-footer">
+    <div class="footer-container">
+      <div class="footer-top">
+        <div class="footer-brand-col">
+          <div class="footer-brand-header">
+            <img src="/static/img/logo.svg" alt="FluxKernel" class="footer-brand-icon">
+            <span class="footer-brand-name">FluxKernel</span>
+          </div>
+          <p class="footer-brand-desc">
+            Sovereign Agentic AI & Foundational LLM Engine engineered for autonomous code synthesis, multi-specialist deliberation, and isolated git sandboxing.
+          </p>
+          <div class="footer-badge">
+            <span>Runtime: Go · C++20 · Python</span>
+          </div>
+        </div>
+
+        <div class="footer-links-col">
+          <h5 class="footer-col-title">Navigation</h5>
+          <ul class="footer-link-list">
+            <li><a href="/dashboard?theme={{ .Theme }}">Mission Control</a></li>
+            <li><a href="#capabilities">Capabilities</a></li>
+            <li><a href="#swarm">Specialist Swarm</a></li>
+            <li><a href="#sandbox">Git Sandboxing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <h5 class="footer-col-title">Architecture</h5>
+          <ul class="footer-link-list">
+            <li><a href="#model">Foundational LLM</a></li>
+            <li><a href="#vault">Vector Memory Vault</a></li>
+            <li><a href="/dashboard?tab=rules&theme={{ .Theme }}">Learned Rules</a></li>
+            <li><a href="/dashboard?tab=all&theme={{ .Theme }}">Telemetry Stream</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <h5 class="footer-col-title">Platform</h5>
+          <ul class="footer-link-list">
+            <li><a href="/login?theme=system">System Default Theme</a></li>
+            <li><a href="/login?theme=light">Light Theme</a></li>
+            <li><a href="/login?theme=dark">Dark Theme</a></li>
+            <li><a href="/dashboard?guest=1&theme={{ .Theme }}">Instant Guest Access</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div class="footer-copyright">
+          © 2026 Voxion Labs · All rights reserved.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</div>
+{{ end }}

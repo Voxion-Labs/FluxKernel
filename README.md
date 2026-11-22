@@ -5,68 +5,75 @@
 <br>
 
 # <div align="center">FluxKernel</div>
-### <div align="center">Voxion Labs Intelligence Kernel & Operating System</div>
+### <div align="center">Sovereign Agentic AI & Foundational LLM Combo Engine</div>
 
 <div align="center">
 
-![Gateway](https://img.shields.io/badge/Gateway-Go%201.23%20%7C%20High--Concurrency-00ADD8?style=for-the-badge&logo=go&logoColor=white)
-![Accelerator](https://img.shields.io/badge/Accelerator-C%2B%2B20%20%7C%20SIMD%20AVX2-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)
-![Kernel](https://img.shields.io/badge/Kernel-Python%20%7C%20Cognitive%20Core-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Interface](https://img.shields.io/badge/Interface-Server--Side%20Rendered%20UI-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Agentic Core](https://img.shields.io/badge/Agentic%20Core-Autonomous%20Loop-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Foundational LLM](https://img.shields.io/badge/Foundational%20LLM-Flux--1.0%20Native-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Swarm Deliberation](https://img.shields.io/badge/Swarm%20Deliberation-4--Specialist%20DAG-9333EA?style=for-the-badge)
+![Vector Memory](https://img.shields.io/badge/Vector%20Memory-C%2B%2B20%20%7C%20AVX2%20SIMD-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)
+![UI Console](https://img.shields.io/badge/Interface-Zero--JS%20SSR%20Console-10B981?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Proprietary-red.svg?style=for-the-badge)
 
 </div>
 
 ---
 
-## 1. Technical Overview
+## 1. Executive Overview
 
-**FluxKernel** is a sovereign multi-domain intelligence kernel and local runtime engineered for complex engineering synthesis, quantitative modeling, scientific computing, and system automation.
+**FluxKernel** is a sovereign, self-contained intelligence platform engineered by fusing **Foundational Large Language Model (LLM) reasoning** with an **Autonomous Agentic Decision & Execution Loop**.
 
-The platform executes across three coordinated tiers connected via high-speed IPC and C ABI shared memory interfaces:
+Traditional LLMs generate text in an isolated vacuum without the ability to verify their own code, inspect runtime errors, or interact with local repositories. Conversely, conventional orchestration frameworks lack deep foundational comprehension and rely on rigid, fragile script pipelines. 
 
-- **Network Gateway & Reverse Proxy (Go 1.23)**: High-concurrency request routing, Server-Sent Events (SSE) telemetry streaming, workspace file management, and an industrial server-side rendered Mission Control console supporting System Default, Light, and Dark themes.
-- **Native SIMD Vector Memory (C++20)**: Bare-metal AVX2 SIMD vector dot products (384-dimensional embeddings), L2 cosine metrics, character-level diff distance calculations, and filesystem execution boundaries accessible through a zero-overhead C ABI interface (`ctypes` / FFI).
-- **Cognitive Reasoning Engine (Python 3.11 / FastAPI)**: Multi-step architectural synthesis, sandboxed multi-language code execution, episodic rule distillation, autonomous web grounding, and multi-domain agent swarm deliberation.
+FluxKernel solves this divide by unifying both paradigms into a cohesive, local-first engine:
+
+1. **Foundational Neural Reasoning (`Flux-1.0`)**: An all-rounder foundational brain capable of understanding open-ended engineering directives, generating concurrent multi-file code plans, and dynamically searching the live web for authoritative citations without hardcoded keyword filters.
+2. **Autonomous Agentic Execution Loop**: A self-healing **Plan → Write → Test → Fix** cycle that executes tasks inside isolated git sandboxes, analyzes compiler and runtime diagnostics, coordinates multi-specialist swarm deliberations, and commits verified mutations through an in-memory unified diff gate.
+3. **Bare-Metal SIMD Acceleration (C++20)**: Hardware-accelerated AVX2 vector dot products (384-dimensional embeddings), cosine similarity search, and character-level diff distance calculations running directly against CPU registers via a zero-overhead C ABI interface.
+4. **High-Concurrency Gateway & Mission Control (Go 1.23)**: A lightweight, server-side rendered (SSR) web console featuring industrial typography, System Default, Light, and Dark themes, and progressive real-time telemetry streaming with zero JavaScript overhead.
 
 ---
 
-## 2. System Architecture & Topology
+## 2. System Topology & Dual-Engine Synergy
 
 ```
 +=======================================================================================================+
-|                                    FLUXKERNEL SYSTEM TOPOLOGY                                         |
+|                                  FLUXKERNEL SYSTEM ARCHITECTURE                                       |
 +=======================================================================================================+
 |                                                                                                       |
-|  [ Operator / Browser / Mobile Device ]                                                               |
+|  [ Operator / Browser / Mobile LAN Device ]                                                           |
 |          ||                                                                                           |
-|          || HTTP / Server-Side Rendered Streams (:8080)                                               |
+|          || HTTP / Server-Side Rendered HTML5 Streams (:8080)                                         |
 |          \/                                                                                           |
 |  +-------------------------------------------------------------------------------------------------+  |
-|  | NETWORK GATEWAY & MISSION CONTROL CONSOLE (:8080)                                               |  |
+|  | NETWORK GATEWAY & MISSION CONTROL CONSOLE (Go 1.23)                                             |  |
 |  | -- High-Concurrency Request Router & Reverse Proxy                                              |  |
-|  | -- Server-Side Rendered UI (System Default, Light, and Dark Themes)                             |  |
-|  | -- In-Place Workspace Editor & LCS Unified Batch Diff Gate                                      |  |
-|  | -- Real-Time Server-Sent Events (SSE) Telemetry Streamer                                        |  |
+|  | -- Lexio-Inspired Landing & Operator Session Console (/login)                                   |  |
+|  | -- Server-Side Rendered Mission Control Hub (/dashboard, System Default / Light / Dark)        |  |
+|  | -- In-Place Workspace Editor & Unified LCS Batch Diff Gate                                      |  |
+|  | -- Real-Time Server-Sent Events (SSE) & Chunked Progress Telemetry                              |  |
 |  +-------------------------------------------------------------------------------------------------+  |
 |          ||                                                 ||                                        |
-|          || Local Reverse Proxy (HTTP/SSE)                  || C ABI Shared Memory / FFI             |
+|          || Reverse Proxy (HTTP/SSE)                        || C ABI Shared Memory / FFI             |
 |          \/                                                 \/                                        |
 |  +---------------------------------------+      +--------------------------------------------------+  |
-|  | COGNITIVE REASONING ENGINE (:8000)    |      | NATIVE ACCELERATOR (libflux_core)                |  |
-|  | -- Flux-1.0 Native Foundational Brain |<====>| -- AVX2 SIMD Vector Dot Products (384-dim)       |  |
-|  | -- Multi-Domain Swarm Consensus DAG   | C ABI| -- Memory Difference Scoring (Diff Distance)     |  |
-|  | -- Multi-Language Sandboxed Executor  | ctypes| -- Lexical Path Normalization & Isolation       |  |
-|  | -- Episodic Rule Learning & Feedback  |      | -- Execution Boundary Verification               |  |
+|  | FOUNDATIONAL LLM & REASONING BRAIN    |      | BARE-METAL SIMD ACCELERATOR (libflux_core)       |  |
+|  | -- Flux-1.0 Native Synthesizer        |<====>| -- AVX2 SIMD Vector Dot Products (384-dim)       |  |
+|  | -- Multi-File Architectural Planner   | C ABI| -- L2 Cosine Distance & Semantic Search         |  |
+|  | -- Autonomous Live Web Grounding      |ctypes| -- Lexical LCS Difference Distance               |  |
+|  | -- Multi-Model Driver Routing         |      | -- Memory Boundary & Path Normalization          |  |
 |  +---------------------------------------+      +--------------------------------------------------+  |
 |          ||                     ||                                  ||                                |
-|          || Task Dispatch       || WAL Mode Queries                 || File System Operations         |
+|          || Plan & Directives   || Transactions                     || Branch Mutations               |
 |          \/                     \/                                  \/                                |
-|  +----------------+     +--------------------------+    +------------------------------------------+  |
-|  | ASYNC TASK     |     | ZERO-FOOTPRINT VAULT     |    | ISOLATED GIT SANDBOXES                   |  |
-|  | QUEUE          |     | SQLite 3 (WAL Checkpoint |    | Target: ./workspace/                     |  |
-|  | (Embedded)     |     | & Vacuum Compaction)     |    | Branches: flux/task-* (Clean Working Tree) | |
-|  +----------------+     +--------------------------+    +------------------------------------------+  |
+|  +-----------------------+  +--------------------------+    +--------------------------------------+  |
+|  | AGENTIC EXECUTION     |  | ZERO-FOOTPRINT VAULT     |    | ISOLATED GIT TASK SANDBOXES          |  |
+|  | -- Autonomous Loop    |  | -- SQLite 3 (WAL Mode)   |    | -- Branch: flux/task-*               |  |
+|  | -- Swarm Consensus DAG|  | -- 0% Idle RAM Handles   |    | -- Zero Production Code Corruption   |  |
+|  | -- Self-Healing Fix   |  | -- Checkpoint & Vacuum   |    | -- Sandbox Mutation Verification     |  |
+|  | -- Episodic Rules     |  | -- Vector & Rule Storage |    | -- Atomic Merge / Abort Protocol     |  |
+|  +-----------------------+  +--------------------------+    +--------------------------------------+  |
 |                                                                                                       |
 +=======================================================================================================+
 ```
@@ -75,33 +82,43 @@ The platform executes across three coordinated tiers connected via high-speed IP
 
 ## 3. Core Capabilities & Subsystems
 
-### 3.1 Flux-1.0 Native AI Driver
-The sovereign foundational reasoning engine (`FluxNativeSynthesizer`) operates without brittle keyword bags. It acts as an all-rounder brain that dynamically parses specifications, searches and grounds live research from the web, and generates multi-file plans with concurrent architectures. It also supports seamless routing between local and external engines (`flux-native`, `ollama`, `gemini`, `anthropic`).
+### 3.1 Flux-1.0 Native Foundational Brain
+The foundational reasoning engine (`FluxNativeSynthesizer`) operates as an all-rounder generalist. Rather than relying on rigid keyword dictionaries, it dynamically analyzes technical problem statements, decomposes complex tasks into structured multi-step plans, generates multi-file code architectures, and grounds novel specifications with live web research. In addition to native offline synthesis, it provides seamless multi-model routing to external backends (`flux-native`, `ollama`, `gemini`, `anthropic`).
 
-### 3.2 Multi-Domain Agent Swarm Consensus
-A directed acyclic graph (DAG) of four specialized domain agents collaborates on complex directives:
-- **Tech Lead**: Evaluates concurrency, algorithmic complexity, memory bounds, and code correctness.
-- **Science & Math Specialist**: Formulates differential equations, Hamiltonian simulations, and proofs.
-- **Financial Auditor**: Conducts DCF audits, EBITDA margins, cash flow tracking, and option Greeks.
-- **Executive Auditor**: Cross-examines ballots, resolves trade-offs, and synthesizes a unified action plan.
+### 3.2 Autonomous Self-Healing Agentic Loop
+When an objective is dispatched, FluxKernel initiates an autonomous **Plan → Write → Test → Fix** cycle:
+- **Plan**: Synthesizes structured implementation steps based on codebase context and active rules.
+- **Write**: Emits target files within an isolated execution boundary.
+- **Test**: Executes compiler passes, syntax validators, and test suites in real-time.
+- **Fix**: Automatically captures compiler errors, analyzes stack traces, and generates targeted remediation patches without requiring manual intervention.
 
-### 3.3 Isolated Git Task Sandboxing
-All file mutations execute inside isolated git task branches (`flux/task-*`). The main working tree remains pristine while the agent edits, tests, and verifies code. Proposed mutations are presented through a unified diff review gate for inspection before atomic merge or abort.
+### 3.3 Multi-Domain Specialist Swarm Consensus
+Complex architectural decisions are deliberated by a directed acyclic graph (DAG) of four specialized domain agents:
+- **Tech Lead**: Evaluates concurrency patterns, algorithmic complexity, memory safety, and race hazards.
+- **Science & Math Specialist**: Formulates differential equations, Hamiltonian simulations, and mathematical invariants.
+- **Financial Auditor**: Audits cash flow projections, EBITDA margins, valuation metrics, and risk limits.
+- **Executive Auditor**: Cross-examines ballots, resolves trade-offs, and synthesizes a unified consensus action plan.
 
-### 3.4 Zero-Footprint Storage Vault
-An embedded transactional SQLite 3 storage vault configured with Write-Ahead Logging (WAL). It stores conversation history, vector embeddings, and learned rules. To preserve host memory, persistent connections close automatically when idle (0% idle RAM connection footprint), complemented by on-demand WAL checkpointing and VACUUM compaction.
+### 3.4 Isolated Git Task Sandboxing
+FluxKernel safeguards production codebases through dynamic git branch sandboxing. Every autonomous operation executes inside a dedicated `flux/task-*` branch created from the current repository HEAD. The main working tree remains pristine while the agent edits, builds, and verifies code. Proposed mutations are presented through an industrial unified diff gate for operator review before atomic merge or clean abort.
 
-### 3.5 Industrial Mission Control UI
-A minimalist, server-side rendered interface engineered for clarity and focus:
-- **Theme Selection**: System Default (active by default), Light, and Dark options.
-- **Domain Hubs**: Dedicated workspaces for Overview, Tech & Systems, Science & Math, Finance, Web Research, Memory & Rules, Swarm Deliberation, and Storage Vault.
-- **Live Telemetry Ribbon**: Real-time status indicators monitoring gateway traffic, vector indexer state, core engine readiness, active sandboxes, and SSE event streaming.
+### 3.5 Bare-Metal Vector Memory & Zero-Footprint Vault
+- **SIMD AVX2 Vector Vault**: The C++20 accelerator indexes workspace files into 384-dimensional vector embeddings, computing vector dot products and cosine similarity across register vectors with bare-metal speed.
+- **0% Idle RAM Storage Vault**: Transactional SQLite 3 storage configured with Write-Ahead Logging (WAL). Storage connections close immediately upon query completion, ensuring zero persistent connection footprint during idle periods, complemented by automated WAL checkpoints and VACUUM compaction.
+- **Episodic Rule Distillation**: Learns from corrections and negative constraints across past tasks, saving permanent rules that guide future reasoning.
+
+### 3.6 Industrial Mission Control & Landing Console
+A minimalist, server-side rendered interface engineered for clarity, focus, and low latency:
+- **Lexio Aesthetic System**: Geometric typography powered by `Plus Jakarta Sans`, elevated floating operator cards, rounded status badges, and smooth scrollable landing sections.
+- **Theme Selection**: Three modes supported—**System Default** (active by default), **Light**, and **Dark**.
+- **Domain Hubs**: Workspaces for Overview, Systems Engineering, Science & Math, Quantitative Finance, Web Research, Episodic Rules, Swarm Consensus, and Storage Vault.
+- **Zero-JS Policy**: Pure HTML5 and CSS compliance. No external JavaScript libraries, trackers, or client-side runtime bloat.
 
 ---
 
 ## 4. 1-Click Launch Protocol
 
-FluxKernel embeds its local daemon with a lightweight native OS WebView, providing a desktop application experience without heavyweight runtimes:
+FluxKernel embeds its local daemon with a lightweight native OS WebView, providing a desktop application experience without heavyweight electron dependencies:
 
 ### 4.1 Launch Commands
 
@@ -125,7 +142,8 @@ chmod +x run.sh ops.sh scripts/launch.sh
 - **Zero-Setup Boot**: Verifies Python and Go runtimes automatically.
 - **Standalone Gateway**: Compiles a static Go binary (`bin/fluxkernel-gateway.exe` or `bin/fluxkernel-gateway`) with embedded assets.
 - **Native OS WebView**: Launches Microsoft Edge in App Mode (`--app=http://127.0.0.1:8080/dashboard`) on Windows (borderless native desktop window, <15MB RAM) or Chrome/Chromium App Mode on Linux/macOS.
-- **Local Network / Mobile Access**: Automatically detects your LAN IP address so any smartphone or tablet on the same Wi-Fi can connect directly via `http://<LAN_IP>:8080/dashboard`.
+- **Dedicated Landing & Login Console**: Access the architecture landing page and operator session console at `http://127.0.0.1:8080/login`.
+- **Local Network / Mobile Access**: Automatically detects your LAN IP address so any smartphone or tablet on the same Wi-Fi can connect directly via `http://<LAN_IP>:8080/dashboard` or `http://<LAN_IP>:8080/login`.
 - **Clean Termination**: Exiting with `[Q]` or `[Ctrl+C]` cleanly terminates all daemons without orphan background processes.
 
 ---
@@ -135,7 +153,7 @@ chmod +x run.sh ops.sh scripts/launch.sh
 FluxKernel includes a master 12-phase verification suite and an operational workflow CLI (`ops.ps1` / `ops.sh`).
 
 ### 5.1 End-to-End Production Verification
-Run the unified 12-phase master verification suite anytime to test SIMD vector math, web grounding, transcript ingestion, feedback learning, vault transactions, swarm consensus, sandboxing, and UI rendering:
+Run the unified 12-phase master verification suite anytime to test SIMD vector math, web grounding, transcript ingestion, feedback learning, vault transactions, swarm consensus, git sandboxing, and UI rendering:
 
 ```bash
 python scripts/verify_production.py
@@ -189,5 +207,5 @@ FluxKernel operates under the **Voxion Labs Master Proprietary License (VL-MPL)*
 ---
 <div align="center">
   (c) 2026 Voxion Labs & Rudranarayan Jena<br>
-  <strong>Voxion Labs</strong> · Intelligence Kernel · Go · C++20 · Python
+  <strong>Voxion Labs</strong> · Agentic AI & Foundational LLM · Go · C++20 · Python
 </div>

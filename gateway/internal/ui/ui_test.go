@@ -871,5 +871,81 @@ func TestUIHandler(t *testing.T) {
 		if !strings.Contains(body, "code-editor") {
 			t.Errorf("CSS missing code-editor styles")
 		}
+		if !strings.Contains(body, "Plus Jakarta Sans") {
+			t.Errorf("CSS missing Plus Jakarta Sans font import")
+		}
+		if !strings.Contains(body, "landing-body") {
+			t.Errorf("CSS missing landing-body styles")
+		}
+	})
+
+	t.Run("Sovereign Landing & Login Page (Lexio Aesthetic System)", func(t *testing.T) {
+		// 1. Default GET /login renders with system theme and Zero-JS
+		req := httptest.NewRequest(http.MethodGet, "/login", nil)
+		rec := httptest.NewRecorder()
+		h.HandleLogin(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for /login, got %d", rec.Code)
+		}
+
+		body := rec.Body.String()
+		if strings.Contains(body, "<script") {
+			t.Errorf("VIOLATION: Zero-JS policy broken on /login")
+		}
+		if !strings.Contains(body, `data-theme="system"`) {
+			t.Errorf("expected default theme 'system' on /login, got: %s", body)
+		}
+		if !strings.Contains(body, "landing-body") {
+			t.Errorf("expected body to have landing-body class")
+		}
+		if !strings.Contains(body, "FluxKernel") {
+			t.Errorf("expected body to contain FluxKernel brand")
+		}
+		if !strings.Contains(body, "Autonomous intelligence and foundational reasoning") {
+			t.Errorf("expected body to contain hero headline")
+		}
+		if !strings.Contains(body, "Workspace Operator Profile") {
+			t.Errorf("expected body to contain operator profile header")
+		}
+		if !strings.Contains(body, "Flux-1.0 Native") {
+			t.Errorf("expected body to contain Flux-1.0 Native engine choice")
+		}
+		if !strings.Contains(body, "© 2026 Voxion Labs · All rights reserved.") {
+			t.Errorf("expected body to contain official copyright line")
+		}
+
+		// 2. Light and Dark Theme Overrides
+		for _, theme := range []string{"light", "dark"} {
+			reqT := httptest.NewRequest(http.MethodGet, "/login?theme="+theme, nil)
+			recT := httptest.NewRecorder()
+			h.HandleLogin(recT, reqT)
+			if recT.Code != http.StatusOK {
+				t.Errorf("expected 200 OK for theme %s, got %d", theme, recT.Code)
+			}
+			if !strings.Contains(recT.Body.String(), `data-theme="`+theme+`"`) {
+				t.Errorf("expected data-theme=\"%s\"", theme)
+			}
+		}
+
+		// 3. POST /login form dispatch redirects to dashboard
+		form := url.Values{}
+		form.Set("operator", "chief_architect")
+		form.Set("workspace", "./workspace")
+		form.Set("engine", "flux-native")
+		form.Set("theme", "dark")
+
+		reqPost := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
+		reqPost.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recPost := httptest.NewRecorder()
+		h.HandleLogin(recPost, reqPost)
+
+		if recPost.Code != http.StatusSeeOther {
+			t.Errorf("expected 303 See Other redirect, got %d", recPost.Code)
+		}
+		loc := recPost.Header().Get("Location")
+		if !strings.Contains(loc, "/dashboard") || !strings.Contains(loc, "theme=dark") || !strings.Contains(loc, "engine=flux-native") {
+			t.Errorf("unexpected redirect location: %s", loc)
+		}
 	})
 }

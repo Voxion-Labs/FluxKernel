@@ -354,6 +354,36 @@ def verify_phase_11_industrial_mission_control():
         ".domain-hub-bar" in css_content,
         "Domain Hub navigation styling verified in CSS",
     )
+    assert_ok(
+        "Plus Jakarta Sans" in css_content,
+        "Plus Jakarta Sans typography styling verified in CSS",
+    )
+    assert_ok(
+        ".landing-body" in css_content,
+        "Sovereign Landing & Login styling verified in CSS",
+    )
+
+    # Sovereign Landing & Login Template (Lexio Design System)
+    login_path = GATEWAY_DIR / "internal" / "ui" / "templates" / "login.html"
+    assert_ok(login_path.is_file(), f"Login template exists: {login_path}")
+    login_content = login_path.read_text(encoding="utf-8")
+    login_scripts = re.findall(r"<script\b", login_content, re.IGNORECASE)
+    assert_ok(
+        len(login_scripts) == 0,
+        f"Strict Zero-JS Policy verified on login template: 0 <script> tags found (found {len(login_scripts)})",
+    )
+    assert_ok(
+        "Autonomous intelligence and foundational reasoning" in login_content,
+        "Hero headline verified in login template",
+    )
+    assert_ok(
+        "Workspace Operator Profile" in login_content,
+        "Workspace Operator Profile header verified in login template",
+    )
+    assert_ok(
+        "© 2026 Voxion Labs · All rights reserved." in login_content,
+        "Official Voxion Labs copyright verified in login footer",
+    )
 
 
 def verify_phase_12_cross_platform_production():

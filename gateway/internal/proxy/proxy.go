@@ -100,6 +100,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/version", h.handleVersion)
 
 	// Sovereign Embedded Web UI & Pure SSR Actions (Zero JS)
+	mux.HandleFunc("/login", h.uiHandler.HandleLogin)
 	mux.Handle("/dashboard", h.uiHandler)
 	mux.HandleFunc("/dashboard/dispatch", h.uiHandler.HandleDispatch)
 	mux.HandleFunc("/dashboard/rollback", h.uiHandler.HandleRollback)

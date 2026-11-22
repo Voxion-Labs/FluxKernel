@@ -45,6 +45,8 @@
          class="theme-btn {{ if eq .Theme "light" }}active{{ end }}">Light</a>
       <a href="/dashboard?theme=dark{{ if .ActiveFile }}&file={{ .ActiveFile }}{{ end }}" 
          class="theme-btn {{ if eq .Theme "dark" }}active{{ end }}">Dark</a>
+      <a href="/login?theme={{ .Theme }}" 
+         class="theme-btn" title="Operator Session & Architecture Landing">Session</a>
     </nav>
 
     <!-- Emergency Rollback Form -->

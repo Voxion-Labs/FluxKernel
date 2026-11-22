@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/static/css/dashboard.css">
   <!-- Minimalist Server-Side Rendered Interface -->
 </head>
-<body>
+<body class="{{ if .BodyClass }}{{ .BodyClass }}{{ end }}">
   {{ block "content" . }}{{ end }}
 </body>
 </html>

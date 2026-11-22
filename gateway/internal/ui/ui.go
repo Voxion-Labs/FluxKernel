@@ -253,6 +253,7 @@ type SandboxMeta struct {
 type UIHandler struct {
 	cfg          *config.Config
 	templates    *template.Template
+	loginTmpl    *template.Template
 	staticFS     http.Handler
 	workspaceDir string
 	client       *http.Client
@@ -293,9 +294,14 @@ func NewUIHandler(cfg *config.Config) (*UIHandler, error) {
 		"lower": strings.ToLower,
 	}
 
-	tmpl, err := template.New("").Funcs(funcMap).ParseFS(embeddedFS, "templates/*.html")
+	dashboardTmpl, err := template.New("layout.html").Funcs(funcMap).ParseFS(embeddedFS, "templates/layout.html", "templates/dashboard.html")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse embedded templates: %w", err)
+		return nil, fmt.Errorf("failed to parse dashboard template: %w", err)
+	}
+
+	loginTmpl, err := template.New("layout.html").Funcs(funcMap).ParseFS(embeddedFS, "templates/layout.html", "templates/login.html")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse login template: %w", err)
 	}
 
 	subStatic, err := fs.Sub(embeddedFS, "static")
@@ -313,7 +319,8 @@ func NewUIHandler(cfg *config.Config) (*UIHandler, error) {
 
 	return &UIHandler{
 		cfg:          cfg,
-		templates:    tmpl,
+		templates:    dashboardTmpl,
+		loginTmpl:    loginTmpl,
 		staticFS:     http.StripPrefix("/static/", http.FileServer(http.FS(subStatic))),
 		workspaceDir: cfg.WorkspaceDir,
 		client:       &http.Client{Timeout: 10 * time.Second},
@@ -526,6 +533,85 @@ func (h *UIHandler) handleRenderDashboard(w http.ResponseWriter, r *http.Request
 	if err := h.templates.ExecuteTemplate(w, "layout.html", data); err != nil {
 		log.Printf("[UI Render Error] Failed to execute template: %v", err)
 		http.Error(w, "Error rendering template", http.StatusInternalServerError)
+	}
+}
+
+// HandleLogin renders the Lexio-inspired scrollable landing & login console (GET)
+// or processes session authentication and redirection (POST).
+func (h *UIHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		theme := resolveTheme(r.URL.Query().Get("theme"))
+		h.mu.RLock()
+		activeEng := h.activeEngine
+		if activeEng == "" {
+			activeEng = "flux-native"
+		}
+		h.mu.RUnlock()
+
+		data := map[string]interface{}{
+			"Title":        "FluxKernel | Sovereign Agentic AI & Foundational LLM",
+			"Theme":        theme,
+			"BodyClass":    "landing-body",
+			"ActiveEngine": activeEng,
+			"Version":      "0.4.0",
+		}
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := h.loginTmpl.ExecuteTemplate(w, "layout.html", data); err != nil {
+			log.Printf("[UI Render Error] Failed to execute login template: %v", err)
+			http.Error(w, "Error rendering login template", http.StatusInternalServerError)
+		}
+
+	case http.MethodPost:
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+
+		theme := resolveTheme(r.FormValue("theme"))
+		operator := strings.TrimSpace(r.FormValue("operator"))
+		workspace := strings.TrimSpace(r.FormValue("workspace"))
+		engine := strings.TrimSpace(r.FormValue("engine"))
+
+		if operator == "" {
+			operator = "lead_engineer"
+		}
+		if workspace == "" {
+			workspace = "./workspace"
+		}
+		if engine == "" {
+			engine = "flux-native"
+		}
+
+		h.mu.Lock()
+		h.activeEngine = engine
+		h.flashMessage = fmt.Sprintf("✓ Operator '%s' initialized sovereign session with engine '%s'.", operator, engine)
+		h.flashType = "success"
+		h.messages = append(h.messages, Message{
+			Role:      "system",
+			Content:   fmt.Sprintf("Operator [%s] initiated session on workspace [%s] using [%s].", operator, workspace, engine),
+			Timestamp: time.Now().Format("15:04:05"),
+		})
+		h.mu.Unlock()
+
+		// Asynchronously notify Python backend if active
+		go func(eng string) {
+			body, _ := json.Marshal(map[string]string{"engine": eng})
+			req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/v1/driver/select", h.cfg.EngineURL), bytes.NewReader(body))
+			if err == nil {
+				req.Header.Set("Content-Type", "application/json")
+				if resp, err := h.client.Do(req); err == nil && resp != nil {
+					_ = resp.Body.Close()
+				}
+			}
+		}(engine)
+
+		targetURL := fmt.Sprintf("/dashboard?theme=%s&engine=%s", url.QueryEscape(theme), url.QueryEscape(engine))
+		http.Redirect(w, r, targetURL, http.StatusSeeOther)
+
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
